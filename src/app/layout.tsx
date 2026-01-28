@@ -17,6 +17,14 @@ export const metadata: Metadata = {
     description: "Saia do básico. Gere prompts que extraem o máximo potencial da IA.",
     url: "https://melhore.ai",
     siteName: "Melhore.AI",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Melhore.AI - Engenharia de Prompts de Elite",
+      },
+    ],
     locale: "pt_BR",
     type: "website",
   },
