@@ -7,7 +7,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarProps) {
-    const navItems: { id: any, label: string, icon: string }[] = [
+    const navItems: { id: string, label: string, icon: string }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'master-prompts', label: 'Master Prompts', icon: '💎' },
         { id: 'history', label: 'Histórico', icon: '🕒' },

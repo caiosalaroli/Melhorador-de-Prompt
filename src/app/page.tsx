@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { type Session } from "@supabase/supabase-js";
 import LandingPage from "@/components/LandingPage";
 import Dashboard from "@/components/Dashboard";
 import LoginPage from "@/components/LoginPage";
@@ -8,7 +9,7 @@ import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [view, setView] = useState<"landing" | "login" | "dashboard">("landing");
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {

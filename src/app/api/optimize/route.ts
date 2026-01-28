@@ -213,20 +213,21 @@ Maximize a densidade técnica e a utilidade prática deste comando.`;
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const err = error as { message?: string; status?: number };
         console.error('Detailed API Error:', error);
 
         // Tratamento específico para erros conhecidos do Gemini
         let errorMessage = "Erro na Otimização";
 
-        if (error.message?.includes("SAFETY")) {
+        if (err.message?.includes("SAFETY")) {
             errorMessage = "O Google bloqueou esta solicitação por conter conteúdo sensível ou violar diretrizes de segurança (ex: celebridades, violência ou armas).";
-        } else if (error.message?.includes("API key")) {
+        } else if (err.message?.includes("API key")) {
             errorMessage = "Erro na Chave de API: Verifique se sua GEMINI_API_KEY está correta no arquivo .env.local.";
-        } else if (error.status === 429) {
+        } else if (err.status === 429) {
             errorMessage = "Limite de requisições atingido. Tente novamente em alguns segundos.";
-        } else if (error.message) {
-            errorMessage = `Erro: ${error.message}`;
+        } else if (err.message) {
+            errorMessage = `Erro: ${err.message}`;
         }
 
         return NextResponse.json(

@@ -409,7 +409,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     return (
         <div className="flex h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden flex-col md:flex-row">
             <div className="hidden md:flex h-full">
-                <Sidebar activePage={currentView} onNavigate={(page: any) => setCurrentView(page)} onLogout={onLogout} />
+                <Sidebar activePage={currentView} onNavigate={(page: string) => setCurrentView(page as any)} onLogout={onLogout} />
             </div>
 
             <main className="flex-1 flex flex-col overflow-hidden relative pb-20 md:pb-0">
