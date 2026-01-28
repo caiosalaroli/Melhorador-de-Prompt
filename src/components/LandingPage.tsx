@@ -441,7 +441,7 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
                         <div className="bg-white p-8 md:p-12 rounded-[32px] md:rounded-[48px] border border-gray-100 shadow-sm flex flex-col items-center text-center transition-transform hover:-translate-y-2 duration-500">
                             <span className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-[0.15em] md:tracking-[0.2em] mb-3 md:mb-4">Flexibilidade Mensal</span>
                             <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-2">Plano Pro Mensal</h3>
-                            <div className="text-4xl md:text-5xl font-black text-gray-900 mb-8 md:mb-10 tracking-tight">R$ 49<span className="text-sm text-gray-400 font-bold ml-1">/mês</span></div>
+                            <div className="text-4xl md:text-5xl font-black text-gray-900 mb-8 md:mb-10 tracking-tight">R$ 39<span className="text-sm text-gray-400 font-bold ml-1">/mês</span></div>
 
                             <ul className="space-y-4 md:space-y-5 mb-10 md:mb-12 text-left w-full">
                                 <li className="flex items-center gap-3 md:gap-4 text-xs md:text-sm font-black text-gray-600">
@@ -472,7 +472,7 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
                             </div>
                             <span className="text-[9px] md:text-[10px] font-black text-blue-600 uppercase tracking-[0.15em] md:tracking-[0.2em] mb-3 md:mb-4">Melhor Custo-Benefício</span>
                             <h3 className="text-xl md:text-2xl font-black text-gray-900 mb-2">Plano Pro Trimestral</h3>
-                            <div className="text-4xl md:text-5xl font-black text-gray-900 mb-8 md:mb-10 tracking-tight">R$ 39<span className="text-sm text-gray-400 font-bold ml-1">/mês</span></div>
+                            <div className="text-4xl md:text-5xl font-black text-gray-900 mb-8 md:mb-10 tracking-tight">R$ 29<span className="text-sm text-gray-400 font-bold ml-1">/mês</span></div>
 
                             <ul className="space-y-4 md:space-y-5 mb-10 md:mb-12 text-left w-full">
                                 <li className="flex items-center gap-3 md:gap-4 text-xs md:text-sm font-black text-gray-900">
