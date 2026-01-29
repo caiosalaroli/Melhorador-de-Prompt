@@ -116,8 +116,7 @@ export async function POST(req: Request) {
         if (!token) {
             return NextResponse.json({ error: "Sessão expirada ou usuário não autenticado." }, { status: 401 });
         }
-        // The serverSupabase client is no longer needed as usage tracking is removed.
-        // const serverSupabase = createServerSupabase(token);
+        const serverSupabase = createServerSupabase(token);
 
 
         const apiKey = process.env.GEMINI_API_KEY;
@@ -165,7 +164,7 @@ Gere o prompt mestre ultra-expandido. Ele deve ser denso, cobrir contexto, perso
         const promptMatch = rawText.match(/---PROMPT---([\s\S]*?)---REASONING---/);
         const reasoningMatch = rawText.match(/---REASONING---([\s\S]*)/);
 
-        let improved = promptMatch ? promptMatch[1].trim() : rawText;
+        const improved = promptMatch ? promptMatch[1].trim() : rawText;
 
         // 4. LOG DE SUCESSO
         if (improved) {
@@ -201,6 +200,24 @@ Maximize a densidade técnica e a utilidade prática deste comando.`;
                 reasoning: ["Otimização estrutural baseada em metadados", "Aplicação de persona expert", "Refinamento de diretrizes técnicas"],
                 stats: { tokensOriginal: 0, tokensImproved: 100, economy: 10 }
             });
+        }
+
+        // 5. REGISTRAR USO NO BANCO DE DADOS
+        const { error: insertError } = await serverSupabase
+            .from('user_usage')
+            .insert({
+                user_id: user.id,
+                prompt_original: prompt,
+                prompt_improved: improved,
+                tokens_original: (await modelGemini.countTokens(prompt)).totalTokens,
+                tokens_improved: (await modelGemini.countTokens(improved)).totalTokens,
+                context: JSON.stringify(context)
+            });
+
+        if (insertError) {
+            console.error('Erro ao registrar uso no Supabase:', insertError);
+            // Não bloqueamos a resposta para o usuário se o log falhar, 
+            // mas registramos no servidor para depuração.
         }
 
         return NextResponse.json({
