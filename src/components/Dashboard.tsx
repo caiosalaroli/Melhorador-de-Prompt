@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import Sidebar from './Sidebar';
+import OnboardingTour from './OnboardingTour';
 import { usePromptHistory } from '@/hooks/usePromptHistory';
 import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/lib/supabase';
@@ -251,6 +252,8 @@ interface DashboardProps {
     onLogout: () => void;
 }
 
+type ViewType = 'dashboard' | 'history' | 'projects' | 'academy' | 'settings' | 'profile' | 'master-prompts';
+
 export default function Dashboard({ onLogout }: DashboardProps) {
     const { history, savePrompt, deletePrompt } = usePromptHistory();
     const { projects, addProject, deleteProject, addPromptToProject } = useProjects();
@@ -262,8 +265,32 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     const [targetPlatform, setTargetPlatform] = useState<'gpt' | 'gemini'>('gemini');
     const [copied, setCopied] = useState(false);
     const [viewMode, setViewMode] = useState<'preview' | 'split'>('preview');
-    const [currentView, setCurrentView] = useState<'dashboard' | 'history' | 'projects' | 'academy' | 'settings' | 'profile' | 'master-prompts'>('dashboard');
+    const [currentView, setCurrentView] = useState<ViewType>('dashboard');
     const [typingComplete, setTypingComplete] = useState(false);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [notice, setNotice] = useState<{ title: string, message: string } | null>(null);
+
+    React.useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setUserEmail(user.email ?? null);
+            }
+        };
+        fetchUser();
+
+        // Check onboarding status
+        const onboardingCompleted = localStorage.getItem('melhore_ai_onboarding_completed');
+        if (!onboardingCompleted) {
+            setShowOnboarding(true);
+        }
+    }, []);
+
+    const handleOnboardingComplete = () => {
+        localStorage.setItem('melhore_ai_onboarding_completed', 'true');
+        setShowOnboarding(false);
+    };
 
     // Memoriza o callback para evitar que o Typewriter reinicie sem necessidade
     const handleTypingComplete = useCallback(() => {
@@ -360,7 +387,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             }
         } catch (err: any) {
             console.error('Error during optimization:', err);
-            alert(err.message || 'Houve um problema ao conectar com o motor de IA. Tente novamente em alguns segundos.');
+            setNotice({
+                title: 'Limite Temporário',
+                message: err.message || 'Houve um limite temporário nas requisições. Como a plataforma está crescendo rápido, o sistema pode levar alguns segundos para processar novos pedidos. Tente novamente em breve!'
+            });
         } finally {
             clearInterval(interval);
             setLoading(false);
@@ -441,6 +471,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             }
         } catch (error) {
             console.error('Error sending feedback:', error);
+            setNotice({
+                title: 'Feedback',
+                message: 'Não foi possível enviar seu feedback no momento. Se o problema persistir, tente novamente mais tarde!'
+            });
         } finally {
             setSendingFeedback(false);
         }
@@ -448,12 +482,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
     return (
         <div className="flex h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden flex-col md:flex-row">
-            <div className="hidden md:flex h-full">
+            {showOnboarding && <OnboardingTour onComplete={handleOnboardingComplete} />}
+            <div id="sidebar-area" className="hidden md:flex h-full">
                 <Sidebar
                     activePage={currentView}
-                    onNavigate={(page: string) => setCurrentView(page as any)}
+                    onNavigate={(page) => setCurrentView(page as typeof currentView)}
                     onLogout={onLogout}
                     onFeedback={() => setShowFeedbackModal(true)}
+                    onTutorial={() => setShowOnboarding(true)}
                 />
             </div>
 
@@ -488,12 +524,12 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-10">
                     {/* VIEW: DASHBOARD */}
                     {currentView === 'dashboard' && (
-                        <div className="flex flex-col lg:flex-row gap-8 h-full max-w-[1600px] mx-auto">
+                        <div id="interview-mode-area" className="flex flex-col lg:flex-row gap-8 h-full max-w-[1600px] mx-auto">
                             {/* Main Canvas */}
                             <div className="flex-1 space-y-8">
                                 <div className="space-y-3 group">
                                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-blue-600">Seu Prompt Bruto</label>
-                                    <div className="relative group">
+                                    <div id="input-area" className="relative group">
                                         <textarea
                                             value={prompt}
                                             onChange={(e) => setPrompt(e.target.value)}
@@ -622,7 +658,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                             </div>
 
                             {/* Sidebar / Settings Area */}
-                            <div className="w-full lg:w-80 min-h-fit lg:sticky top-0 space-y-6 transition-all duration-300 pb-10 lg:pb-0">
+                            <div id="output-area" className="w-full lg:w-80 min-h-fit lg:sticky top-0 space-y-6 transition-all duration-300 pb-10 lg:pb-0">
                                 <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl shadow-gray-200/50 border border-white/50 relative overflow-visible">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
                                     <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 relative z-10">
@@ -812,7 +848,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                                         }} className="text-[10px] font-black text-blue-600 uppercase hover:underline">Carregar no Dashboard</button>
                                                     </div>
                                                     <p className="text-xs font-bold text-gray-400 mb-1 uppercase tracking-tighter">Original:</p>
-                                                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 italic">"{p.original}"</p>
+                                                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 italic">&quot;{p.original}&quot;</p>
                                                     <p className="text-xs font-bold text-blue-600 mb-1 uppercase tracking-tighter">Otimizado:</p>
                                                     <p className="text-sm text-gray-900 line-clamp-3 leading-relaxed">{p.improved}</p>
                                                 </div>
@@ -948,22 +984,22 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                         <div className="space-y-6">
                                             <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
                                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O Erro Comum (Zero-Shot)</p>
-                                                <p className="text-sm font-bold text-gray-600 italic">"Escreva 3 títulos de blog sobre dieta low-carb."</p>
+                                                <p className="text-sm font-bold text-gray-600 italic">&quot;Escreva 3 títulos de blog sobre dieta low-carb.&quot;</p>
                                             </div>
 
                                             <div className="p-8 bg-blue-600 rounded-3xl text-white relative">
                                                 <div className="absolute -top-3 left-8 bg-black text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">O Jeito Certo (Few-Shot)</div>
                                                 <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-4">Instrução com Exemplos:</p>
                                                 <p className="text-sm font-bold leading-relaxed">
-                                                    "Escreva 3 títulos de blog sobre dieta low-carb seguindo o padrão abaixo:<br /><br />
-                                                    Ex 1: '5 Mitos sobre corrida que estão destruindo seus joelhos'<br />
-                                                    Ex 2: 'Como emagrecer comendo pizza: A verdade sobre calorias'<br /><br />
-                                                    Agora gere os títulos para dieta low-carb:"
+                                                    &quot;Escreva 3 títulos de blog sobre dieta low-carb seguindo o padrão abaixo:<br /><br />
+                                                    Ex 1: &apos;5 Mitos sobre corrida que estão destruindo seus joelhos&apos;<br />
+                                                    Ex 2: &apos;Como emagrecer comendo pizza: A verdade sobre calorias&apos;<br /><br />
+                                                    Agora gere os títulos para dieta low-carb:&quot;
                                                 </p>
                                             </div>
 
                                             <div className="pt-4 text-center">
-                                                <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Resultado: A IA entende que você quer títulos de "curiosidade/contraintuitivos" e não títulos genéricos.</p>
+                                                <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Resultado: A IA entende que você quer títulos de &quot;curiosidade/contraintuitivos&quot; e não títulos genéricos.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -985,6 +1021,18 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                     <span>Token Usage</span>
                                     <span className="text-green-500">Ilimitado</span>
                                 </div>
+                                <div className="flex justify-between items-center text-sm font-bold text-gray-600">
+                                    <span>Assinatura</span>
+                                    <button
+                                        onClick={() => setNotice({
+                                            title: 'Acesso Premium',
+                                            message: 'O portal de gerenciamento de assinatura será ativado assim que o checkout oficial for lançado. Por enquanto, sua conta é Premium Vitalícia de lançamento! 🚀'
+                                        })}
+                                        className="text-blue-600 hover:underline"
+                                    >
+                                        Gerenciar
+                                    </button>
+                                </div>
                                 <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
                                     <a href="/terms" target="_blank" className="text-xs font-bold text-blue-600 hover:underline">Termos de Uso</a>
                                     <a href="/privacy" target="_blank" className="text-xs font-bold text-blue-600 hover:underline">Política de Privacidade</a>
@@ -1000,8 +1048,26 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                                 <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto flex items-center justify-center text-4xl">👤</div>
                                 <div className="space-y-1">
                                     <h3 className="text-2xl font-black text-gray-900">Usuário Premium</h3>
-                                    <p className="text-sm font-bold text-blue-600">Membro desde 2026</p>
+                                    <p className="text-sm font-bold text-blue-600">{userEmail || 'Membro desde 2026'}</p>
                                 </div>
+                                <div className="pt-2">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Precisa alterar seus dados?</p>
+                                    <a
+                                        href={`mailto:suporte@melhore.ai?subject=Alteração de Dados - ${userEmail}`}
+                                        className="text-xs font-black text-blue-600 hover:underline"
+                                    >
+                                        Falar com o Suporte →
+                                    </a>
+                                </div>
+                                <button
+                                    onClick={() => setNotice({
+                                        title: 'Acesso Premium',
+                                        message: 'O portal de gerenciamento de assinatura será ativado assim que o checkout oficial for lançado. Por enquanto, sua conta é Premium Vitalícia de lançamento! 🚀'
+                                    })}
+                                    className="w-full py-4 bg-gray-50 text-gray-900 font-bold border-2 border-gray-100 rounded-2xl hover:bg-white hover:border-blue-100 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <span>💳</span> Gerenciar Assinatura
+                                </button>
                                 <button onClick={onLogout} className="w-full py-4 text-red-500 font-black border-2 border-red-50 rounded-2xl hover:bg-red-50 transition-colors">Sair da Conta</button>
                             </div>
                         </div>
@@ -1009,7 +1075,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 </div>
             </main>
 
-            <MobileNav activePage={currentView} onNavigate={(page) => setCurrentView(page as any)} />
+            <MobileNav activePage={currentView} onNavigate={(page) => setCurrentView(page)} />
 
             {/* FEEDBACK MODAL */}
             {showFeedbackModal && (
@@ -1080,8 +1146,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 }
 
 // Novo componente de navegação mobile
-function MobileNav({ activePage, onNavigate }: { activePage: string, onNavigate: (page: string) => void }) {
-    const navItems = [
+function MobileNav({ activePage, onNavigate }: { activePage: ViewType, onNavigate: (page: ViewType) => void }) {
+    const navItems: { id: ViewType, icon: string, label: string }[] = [
         { id: 'dashboard', icon: '🏠', label: 'Painel' },
         { id: 'projects', icon: '📁', label: 'Projetos' },
         { id: 'master-prompts', icon: '📚', label: 'Master' },

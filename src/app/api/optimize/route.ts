@@ -257,13 +257,13 @@ Maximize a densidade técnica e a utilidade prática deste comando.`;
         let errorMessage = "Erro na Otimização";
 
         if (err.message?.includes("SAFETY")) {
-            errorMessage = "O Google bloqueou esta solicitação por conter conteúdo sensível ou violar diretrizes de segurança (ex: celebridades, violência ou armas).";
+            errorMessage = "O Google bloqueou esta solicitação por conter conteúdo sensível ou violar diretrizes de segurança (ex: celebridades, violência ou conteúdo impróprio).";
         } else if (err.message?.includes("API key")) {
-            errorMessage = "Erro na Chave de API: Verifique se sua GEMINI_API_KEY está correta no arquivo .env.local.";
-        } else if (err.status === 429) {
-            errorMessage = "Limite de requisições atingido. Tente novamente em alguns segundos.";
+            errorMessage = "Erro na Chave de API: Configure sua GEMINI_API_KEY corretamente no Supabase/Vercel.";
+        } else if (err.status === 429 || err.message?.includes("429")) {
+            errorMessage = `Limite temporário de requisições atingido. Detalhe: ${err.message || 'Verifique sua cota no Google AI Studio'}. Tente novamente em alguns segundos.`;
         } else if (err.message) {
-            errorMessage = `Erro: ${err.message}`;
+            errorMessage = `Ops! Ocorreu um problema técnico: ${err.message}`;
         }
 
         return NextResponse.json(

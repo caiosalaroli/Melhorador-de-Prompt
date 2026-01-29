@@ -5,9 +5,10 @@ interface SidebarProps {
     onNavigate: (page: string) => void;
     onLogout?: () => void;
     onFeedback?: () => void;
+    onTutorial?: () => void;
 }
 
-export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback }: SidebarProps) {
+export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback, onTutorial }: SidebarProps) {
     const navItems: { id: string, label: string, icon: string }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'master-prompts', label: 'Master Prompts', icon: '💎' },
@@ -28,6 +29,7 @@ export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback }
                 {navItems.map((item) => (
                     <button
                         key={item.id}
+                        id={`sidebar-${item.id}`}
                         onClick={() => onNavigate(item.id)}
                         className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl font-black text-sm transition-all duration-300 group whitespace-nowrap ${activePage === item.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-100' : 'text-gray-400 hover:bg-blue-50 hover:text-blue-600'}`}
                     >
@@ -37,8 +39,15 @@ export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback }
                 ))}
             </div>
 
-            {/* Feedback Section */}
-            <div className="px-5 pb-4">
+            {/* Tutorial & Feedback Section */}
+            <div className="px-5 pb-4 space-y-3">
+                <button
+                    onClick={onTutorial}
+                    className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl font-bold text-xs text-gray-500 bg-gray-50 hover:bg-white hover:text-blue-600 border border-transparent hover:border-blue-100 transition-all duration-300 group shadow-sm"
+                >
+                    <span className="text-lg group-hover:scale-110 transition-transform">❓</span>
+                    Como Usar
+                </button>
                 <button
                     onClick={onFeedback}
                     className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl font-bold text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all duration-300 group"
