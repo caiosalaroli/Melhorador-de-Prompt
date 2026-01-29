@@ -280,6 +280,13 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     const [selectedProjectId, setSelectedProjectId] = useState<string>("");
     const [openProjectId, setOpenProjectId] = useState<string | null>(null);
 
+    // Feedback State
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+    const [feedbackCategory, setFeedbackCategory] = useState("Sugestão");
+    const [feedbackMessage, setFeedbackMessage] = useState("");
+    const [sendingFeedback, setSendingFeedback] = useState(false);
+    const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+
     const [context, setContext] = useState({
         intention: 'Texto',
         persona: AUTO_OPTION.label,
@@ -406,10 +413,48 @@ export default function Dashboard({ onLogout }: DashboardProps) {
         setCurrentView('dashboard');
     };
 
+    const handleSendFeedback = async () => {
+        if (!feedbackMessage.trim()) return;
+
+        setSendingFeedback(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const response = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`
+                },
+                body: JSON.stringify({
+                    category: feedbackCategory,
+                    message: feedbackMessage
+                })
+            });
+
+            if (response.ok) {
+                setFeedbackSuccess(true);
+                setFeedbackMessage("");
+                setTimeout(() => {
+                    setFeedbackSuccess(false);
+                    setShowFeedbackModal(false);
+                }, 2000);
+            }
+        } catch (error) {
+            console.error('Error sending feedback:', error);
+        } finally {
+            setSendingFeedback(false);
+        }
+    };
+
     return (
         <div className="flex h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden flex-col md:flex-row">
             <div className="hidden md:flex h-full">
-                <Sidebar activePage={currentView} onNavigate={(page: string) => setCurrentView(page as any)} onLogout={onLogout} />
+                <Sidebar
+                    activePage={currentView}
+                    onNavigate={(page: string) => setCurrentView(page as any)}
+                    onLogout={onLogout}
+                    onFeedback={() => setShowFeedbackModal(true)}
+                />
             </div>
 
             <main className="flex-1 flex flex-col overflow-hidden relative pb-20 md:pb-0">
@@ -965,6 +1010,71 @@ export default function Dashboard({ onLogout }: DashboardProps) {
             </main>
 
             <MobileNav activePage={currentView} onNavigate={(page) => setCurrentView(page as any)} />
+
+            {/* FEEDBACK MODAL */}
+            {showFeedbackModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => !sendingFeedback && setShowFeedbackModal(false)}></div>
+                    <div className="bg-white rounded-[40px] shadow-2xl border border-gray-100 w-full max-w-lg relative z-10 overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl">💬</div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-gray-900">Enviar Feedback</h2>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sua opinião é vital</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowFeedbackModal(false)} className="text-gray-300 hover:text-gray-600 transition-colors">✕</button>
+                            </div>
+
+                            {feedbackSuccess ? (
+                                <div className="py-12 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                    <div className="text-5xl">✅</div>
+                                    <h3 className="text-xl font-black text-gray-900">Obrigado!</h3>
+                                    <p className="text-sm font-medium text-gray-500">Seu feedback foi recebido com sucesso.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sobre o que você quer falar?</p>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {["Sugestão", "Bug", "Elogio"].map((cat) => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => setFeedbackCategory(cat)}
+                                                    className={`py-3 rounded-2xl font-bold text-xs transition-all ${feedbackCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sua Mensagem</p>
+                                        <textarea
+                                            value={feedbackMessage}
+                                            onChange={(e) => setFeedbackMessage(e.target.value)}
+                                            placeholder="Descreva aqui sua sugestão, problema ou elogio..."
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-3xl p-5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-[150px] transition-all"
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={handleSendFeedback}
+                                        disabled={sendingFeedback || !feedbackMessage.trim()}
+                                        className="w-full py-5 bg-gray-900 text-white rounded-[24px] font-black text-sm hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:bg-gray-900 flex items-center justify-center gap-2"
+                                    >
+                                        {sendingFeedback ? 'Enviando...' : 'Enviar Agora'}
+                                        {!sendingFeedback && <span>🚀</span>}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

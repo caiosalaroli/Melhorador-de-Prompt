@@ -4,9 +4,10 @@ interface SidebarProps {
     activePage: string;
     onNavigate: (page: string) => void;
     onLogout?: () => void;
+    onFeedback?: () => void;
 }
 
-export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarProps) {
+export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback }: SidebarProps) {
     const navItems: { id: string, label: string, icon: string }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'master-prompts', label: 'Master Prompts', icon: '💎' },
@@ -38,15 +39,13 @@ export default function Sidebar({ activePage, onNavigate, onLogout }: SidebarPro
 
             {/* Feedback Section */}
             <div className="px-5 pb-4">
-                <a
-                    href="https://forms.gle/exemplo"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <button
+                    onClick={onFeedback}
                     className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl font-bold text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 transition-all duration-300 group"
                 >
                     <span className="text-lg group-hover:scale-110 transition-transform">💬</span>
                     Enviar Feedback
-                </a>
+                </button>
             </div>
 
             <button
