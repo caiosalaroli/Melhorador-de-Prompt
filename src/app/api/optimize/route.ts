@@ -210,20 +210,37 @@ Maximize a densidade técnica e a utilidade prática deste comando.`;
             reasoningResult = (reasoningMatch ? reasoningMatch[1].trim().split('\n') : []).map(r => r.replace(/^-\s*/, '').trim()).filter(r => r.length > 0);
         }
 
-        // 5. REGISTRAR USO NO BANCO DE DADOS (Agora captura todos os casos)
-        const { error: insertError } = await serverSupabase
-            .from('user_usage')
-            .insert({
-                user_id: user.id,
-                prompt_original: prompt,
-                prompt_improved: improved,
-                tokens_original: statsResult.tokensOriginal,
-                tokens_improved: statsResult.tokensImproved,
-                context: JSON.stringify(context)
-            });
+        // 5. REGISTRAR USO NO BANCO DE DADOS (Agora captura todos os casos com o schema correto)
+        try {
+            const now = new Date();
+            const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-        if (insertError) {
-            console.error('Erro ao registrar uso no Supabase:', insertError);
+            // Primeiro tentamos buscar o registro atual para este mês
+            const { data: currentUsage } = await serverSupabase
+                .from('user_usage')
+                .select('prompt_count')
+                .eq('user_id', user.id)
+                .eq('month_year', monthYear)
+                .single();
+
+            const newCount = (currentUsage?.prompt_count || 0) + 1;
+
+            const { error: insertError } = await serverSupabase
+                .from('user_usage')
+                .upsert({
+                    user_id: user.id,
+                    month_year: monthYear,
+                    prompt_count: newCount,
+                    last_used: now.toISOString()
+                }, {
+                    onConflict: 'user_id,month_year'
+                });
+
+            if (insertError) {
+                console.error('Erro ao registrar uso no Supabase:', insertError);
+            }
+        } catch (usageErr) {
+            console.error('Falha crítica no log de uso:', usageErr);
         }
 
         return NextResponse.json({
