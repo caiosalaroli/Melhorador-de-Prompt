@@ -164,7 +164,10 @@ Gere o prompt mestre ultra-expandido. Ele deve ser denso, cobrir contexto, perso
         const promptMatch = rawText.match(/---PROMPT---([\s\S]*?)---REASONING---/);
         const reasoningMatch = rawText.match(/---REASONING---([\s\S]*)/);
 
-        const improved = promptMatch ? promptMatch[1].trim() : rawText;
+        const improvedRaw = promptMatch ? promptMatch[1].trim() : rawText;
+        let improved = improvedRaw;
+        let statsResult;
+        let reasoningResult;
 
         // 4. LOG DE SUCESSO
         if (improved) {
@@ -195,39 +198,38 @@ ESTRUTURA MESTRE ESPERADA:
 
 Maximize a densidade técnica e a utilidade prática deste comando.`;
 
-            return NextResponse.json({
-                improved: metaPrompt,
-                reasoning: ["Otimização estrutural baseada em metadados", "Aplicação de persona expert", "Refinamento de diretrizes técnicas"],
-                stats: { tokensOriginal: 0, tokensImproved: 100, economy: 10 }
-            });
+            improved = metaPrompt;
+            statsResult = { tokensOriginal: 0, tokensImproved: 100, economy: 10 };
+            reasoningResult = ["Otimização estrutural baseada em metadados", "Aplicação de persona expert", "Refinamento de diretrizes técnicas"];
+        } else {
+            statsResult = {
+                tokensOriginal: (await modelGemini.countTokens(prompt)).totalTokens,
+                tokensImproved: (await modelGemini.countTokens(improved)).totalTokens,
+                economy: 20
+            };
+            reasoningResult = (reasoningMatch ? reasoningMatch[1].trim().split('\n') : []).map(r => r.replace(/^-\s*/, '').trim()).filter(r => r.length > 0);
         }
 
-        // 5. REGISTRAR USO NO BANCO DE DADOS
+        // 5. REGISTRAR USO NO BANCO DE DADOS (Agora captura todos os casos)
         const { error: insertError } = await serverSupabase
             .from('user_usage')
             .insert({
                 user_id: user.id,
                 prompt_original: prompt,
                 prompt_improved: improved,
-                tokens_original: (await modelGemini.countTokens(prompt)).totalTokens,
-                tokens_improved: (await modelGemini.countTokens(improved)).totalTokens,
+                tokens_original: statsResult.tokensOriginal,
+                tokens_improved: statsResult.tokensImproved,
                 context: JSON.stringify(context)
             });
 
         if (insertError) {
             console.error('Erro ao registrar uso no Supabase:', insertError);
-            // Não bloqueamos a resposta para o usuário se o log falhar, 
-            // mas registramos no servidor para depuração.
         }
 
         return NextResponse.json({
             improved,
-            reasoning: (reasoningMatch ? reasoningMatch[1].trim().split('\n') : []).map(r => r.replace(/^-\s*/, '').trim()).filter(r => r.length > 0),
-            stats: {
-                tokensOriginal: (await modelGemini.countTokens(prompt)).totalTokens,
-                tokensImproved: (await modelGemini.countTokens(improved)).totalTokens,
-                economy: 20
-            }
+            reasoning: reasoningResult,
+            stats: statsResult
         });
 
     } catch (error: unknown) {
