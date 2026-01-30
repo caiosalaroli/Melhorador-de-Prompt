@@ -6,9 +6,10 @@ interface SidebarProps {
     onLogout?: () => void;
     onFeedback?: () => void;
     onTutorial?: () => void;
+    isPro?: boolean;
 }
 
-export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback, onTutorial }: SidebarProps) {
+export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback, onTutorial, isPro }: SidebarProps) {
     const navItems: { id: string, label: string, icon: string }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'master-prompts', label: 'Master Prompts', icon: '💎' },

@@ -101,6 +101,25 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Sessão expirada ou usuário não autenticado." }, { status: 401 });
         }
 
+        /* 1.1 VERIFICAÇÃO DE ASSINATURA (DESATIVADO PARA TESTES FINAIS)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_pro')
+            .eq('user_id', user.id)
+            .single();
+
+        if (!profile?.is_pro) {
+            return NextResponse.json(
+                {
+                    error: "Acesso Restrito: Assinatura Pro Necessária",
+                    code: "PAYMENT_REQUIRED",
+                    message: "Você precisa de uma assinatura ativa para usar a otimização de elite. Clique em 'Aproveitar Oferta' para começar."
+                },
+                { status: 403 }
+            );
+        }
+        */
+
         const { prompt, context } = await req.json();
 
         // 2. TRAVA DE SEGURANÇA: Limite de Caracteres (Reduzido para 400)

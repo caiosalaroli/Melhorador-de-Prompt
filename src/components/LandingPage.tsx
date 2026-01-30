@@ -61,7 +61,7 @@ const SCENARIOS = [
                         <span className="text-gray-400">Assunto:</span> Jantar de chef em apenas 15 min? [Gatilho de Curiosidade]
                     </div>
                     <p className="text-[11px] text-gray-600 leading-relaxed italic border-l-4 border-green-500 pl-3">
-                        &quot;Você chega em casa exausto às 19h. As crianças perguntam &apos;o que tem pra jantar?&apos;. Você sente aquela culpa... [Storytelling com identificação emocional + 3 benefícios: tempo com família, saúde, prazer de cozinhar] → CTA: &apos;Baixe o e-book GRÁTIS (últimas 50 vagas hoje)&apos;&quot;
+                        &quot;Você chega em casa exausto às 19h. As crianças perguntam &apos;o que tem pra jantar?&apos;. Você sente aquela culpa... [Storytelling com identificação emocional + 3 benefícios: tempo com família, saúde, prazer de cozinhar] → CTA: &apos;Acesse o Guia Completo (Disponível agora)&apos;&quot;
                     </p>
                 </div>
                 <div className="px-4 py-2 bg-green-600 text-white rounded-xl shadow-lg shadow-green-100 text-[10px] font-black text-center uppercase tracking-widest animate-pulse">
@@ -118,7 +118,7 @@ const FAQS = [
     },
     {
         question: "Preciso pagar o ChatGPT ou Gemini para usar?",
-        answer: "Não! Nossa ferramenta funciona perfeitamente com as versões gratuitas do ChatGPT e Gemini. O segredo está na engenharia do comando que geramos para você."
+        answer: "Não! Nossa ferramenta funciona perfeitamente com o ChatGPT e Gemini. O segredo está na engenharia do comando que geramos para você."
     },
     {
         question: "Funciona para qualquer nicho de mercado?",
@@ -166,7 +166,11 @@ function FadeInSection({ children }: { children: React.ReactNode }) {
     );
 }
 
-export default function LandingPage({ onStart }: { onStart: () => void }) {
+interface LandingPageProps {
+    onStart: (intent?: 'login' | 'upgrade') => void;
+}
+
+export default function LandingPage({ onStart }: LandingPageProps) {
     const [activeScenario, setActiveScenario] = React.useState(0);
     const [isOptimizing, setIsOptimizing] = React.useState(false);
     const [isOptimized, setIsOptimized] = React.useState(false);
@@ -213,9 +217,9 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
                     </nav>
 
                     <div className="flex items-center gap-3 md:gap-6">
-                        <button onClick={onStart} className="text-xs md:text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">Login</button>
+                        <button onClick={() => onStart()} className="text-xs md:text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors">Login</button>
                         <button
-                            onClick={onStart}
+                            onClick={() => onStart()}
                             className="bg-blue-600 text-white px-5 md:px-7 py-2.5 md:py-3 rounded-full font-black text-xs md:text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all whitespace-nowrap"
                         >
                             Começar Agora
@@ -244,7 +248,7 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
                             <button
-                                onClick={onStart}
+                                onClick={() => onStart()}
                                 className="w-full sm:w-auto bg-gray-900 text-white px-12 py-5 rounded-2xl text-lg font-black hover:bg-blue-600 shadow-2xl shadow-gray-200 transition-all hover:scale-105"
                             >
                                 Começar a Criar
@@ -468,7 +472,7 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={onStart} className="mt-auto mx-auto w-fit px-12 py-4 bg-gray-50 text-gray-900 rounded-2xl font-black group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm block">Desbloquear Prompt</button>
+                                    <button onClick={() => onStart()} className="mt-auto mx-auto w-fit px-12 py-4 bg-gray-50 text-gray-900 rounded-2xl font-black group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm block">Desbloquear Prompt</button>
                                 </div>
                             ))}
                         </div>
@@ -546,7 +550,7 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
                                         </li>
                                     ))}
                                 </ul>
-                                <button onClick={onStart} className="w-full py-4 md:py-5 bg-blue-600 text-white rounded-[18px] md:rounded-2xl font-black hover:bg-blue-700 shadow-2xl shadow-blue-100 transition-all text-base md:text-lg hover:scale-105 active:scale-95">Aproveitar Oferta</button>
+                                <button onClick={() => onStart('upgrade')} className="w-full py-4 md:py-5 bg-blue-600 text-white rounded-[18px] md:rounded-2xl font-black hover:bg-blue-700 shadow-2xl shadow-blue-100 transition-all text-base md:text-lg hover:scale-105 active:scale-95">Aproveitar Oferta</button>
                                 <p className="mt-4 text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest italic mb-8">Cancele a qualquer momento</p>
                                 <div className="pt-8 border-t border-gray-100 w-full flex flex-col items-center gap-4">
                                     <div className="flex items-center gap-3 px-5 py-3 bg-green-50/50 rounded-2xl border border-green-100/50">
@@ -622,7 +626,7 @@ export default function LandingPage({ onStart }: { onStart: () => void }) {
                         <div>
                             <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-6">Contato</h4>
                             <ul className="space-y-4 text-sm font-bold">
-                                <li><a href="mailto:suporte@melhore.ai" className="text-gray-300 hover:text-blue-500 transition-colors">suporte@melhore.ai</a></li>
+                                <li><a href="mailto:contato.melhoreai.@gmail.com" className="text-gray-300 hover:text-blue-500 transition-colors">contato.melhoreai.@gmail.com</a></li>
                                 <li className="text-gray-500">São Paulo, SP - Brasil</li>
                             </ul>
                         </div>

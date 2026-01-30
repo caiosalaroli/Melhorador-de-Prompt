@@ -11,6 +11,7 @@ export default function Home() {
   const [view, setView] = useState<"landing" | "login" | "dashboard">("landing");
   const [session, setSession] = useState<Session | null>(null);
   const [recoveryMode, setRecoveryMode] = useState(false);
+  const [intent, setIntent] = useState<'login' | 'upgrade'>('login');
 
   useEffect(() => {
     // Check initial session
@@ -39,7 +40,10 @@ export default function Home() {
   return (
     <main>
       {view === "landing" && (
-        <LandingPage onStart={() => setView("login")} />
+        <LandingPage onStart={(newIntent: 'login' | 'upgrade' = 'login') => {
+          setIntent(newIntent);
+          setView("login");
+        }} />
       )}
 
       {view === "login" && (
@@ -50,10 +54,14 @@ export default function Home() {
       )}
 
       {view === "dashboard" && (
-        <Dashboard onLogout={async () => {
-          await supabase.auth.signOut();
-          setView("landing");
-        }} />
+        <Dashboard
+          initialIntent={intent}
+          onLogout={async () => {
+            await supabase.auth.signOut();
+            setIntent('login');
+            setView("landing");
+          }}
+        />
       )}
     </main>
   );
