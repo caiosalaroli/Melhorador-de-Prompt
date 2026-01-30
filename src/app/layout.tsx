@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     description: "Transforme seus resultados com a melhor engenharia de prompts do Brasil.",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.png",
   }
 };
 
