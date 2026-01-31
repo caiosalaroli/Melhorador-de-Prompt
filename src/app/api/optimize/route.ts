@@ -248,6 +248,7 @@ Maximize a densidade técnica e a utilidade prática deste comando.`;
                 .from('user_usage')
                 .upsert({
                     user_id: user.id,
+                    email: user.email, // Adicionado para facilitar visualização no banco
                     month_year: monthYear,
                     prompt_count: newCount,
                     last_used: now.toISOString()

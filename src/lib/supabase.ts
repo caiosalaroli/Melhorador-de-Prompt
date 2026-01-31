@@ -22,3 +22,5 @@ export const createServerSupabase = (token: string) => {
         }
     });
 };
+
+

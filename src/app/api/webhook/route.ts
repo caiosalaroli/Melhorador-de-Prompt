@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { supabase } from '@/lib/supabase';
+import { manageSubscriptionStatus } from '@/lib/subscription';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_build_placeholder', {
     apiVersion: '2024-12-18.acacia' as any,
@@ -27,19 +27,11 @@ export async function POST(req: Request) {
                 const session = event.data.object as Stripe.Checkout.Session;
                 const userId = session.metadata?.userId;
                 const customerId = session.customer as string;
+                const customerEmail = session.customer_details?.email || session.customer_email || undefined;
 
                 if (userId) {
-                    // Marcar usuário como PRO e salvar o Customer ID
-                    const { error } = await supabase
-                        .from('profiles')
-                        .upsert({
-                            user_id: userId,
-                            is_pro: true,
-                            stripe_customer_id: customerId,
-                            updated_at: new Date().toISOString(),
-                        }, { onConflict: 'user_id' });
-
-                    if (error) console.error('Erro ao atualizar perfil no Supabase:', error);
+                    const { error } = await manageSubscriptionStatus(userId, customerId, true, customerEmail as string);
+                    if (error) console.error('Erro ao ativar PRO:', error);
                 }
                 break;
             }
@@ -48,13 +40,9 @@ export async function POST(req: Request) {
                 const subscription = event.data.object as Stripe.Subscription;
                 const customerId = subscription.customer as string;
 
-                // Remover status PRO
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ is_pro: false })
-                    .eq('stripe_customer_id', customerId);
+                const { error } = await manageSubscriptionStatus('', customerId, false);
 
-                if (error) console.error('Erro ao remover status PRO no Supabase:', error);
+                if (error) console.error('Erro ao remover status PRO:', error);
                 break;
             }
 
