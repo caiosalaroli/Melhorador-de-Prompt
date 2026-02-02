@@ -6,6 +6,7 @@ import OnboardingTour from './OnboardingTour';
 import { usePromptHistory } from '@/hooks/usePromptHistory';
 import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/lib/supabase';
+import LoadingScreen from './LoadingScreen';
 
 // Mapeamento dinâmico de opções baseado na intenção
 const AUTO_OPTION = { id: 'auto', label: 'Detectar Automaticamente (IA)', icon: '✨', desc: 'A IA decide a melhor persona, tom e objetivo.' };
@@ -611,8 +612,13 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
         }
     };
 
+    // --- ESTADO DE CARREGAMENTO INICIAL (ZERO-JANK) ---
+    if (initializing) {
+        return <LoadingScreen />;
+    }
+
     // --- PAYWALL OBRIGATÓRIO (MODO PAID-ONLY) ---
-    if (!loading && !isPro) {
+    if (!isPro) {
         return (
             <div className="min-h-screen bg-black flex flex-col md:flex-row font-sans">
                 {/* Lado Esquerdo - Visual */}
@@ -752,304 +758,383 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                 />
             </div>
 
-            {initializing ? (
-                <div className="flex-1 flex items-center justify-center bg-white">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-[0.3em] animate-pulse">Sincronizando Perfil...</p>
-                    </div>
-                </div>
-            ) : (
-                <>
-                    <main className="flex-1 flex flex-col overflow-hidden relative pb-20 md:pb-0">
-                        {/* Decorative Gradient Blob */}
-                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+            <main className="flex-1 flex flex-col overflow-hidden relative pb-20 md:pb-0">
+                {/* Decorative Gradient Blob */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
 
-                        <header className="h-16 border-b border-gray-200/50 flex items-center justify-between px-8 bg-white/80 backdrop-blur-xl sticky top-0 z-20">
-                            <div className="font-bold text-gray-900 tracking-tight text-base md:text-lg flex items-center gap-2 truncate">
-                                <span className="truncate">
-                                    {currentView === 'dashboard' && 'Painel'}
-                                    {currentView === 'history' && 'Histórico'}
-                                    {currentView === 'projects' && 'Projetos'}
-                                    {currentView === 'settings' && 'Ajustes'}
-                                    {currentView === 'master-prompts' && 'Biblioteca'}
-                                    {currentView === 'academy' && 'Academia'}
-                                    {currentView === 'profile' && 'Perfil'}
-                                </span>
-                                <span className="text-gray-300 mx-1 text-[10px] hidden sm:inline">/</span>
-                                <span className="text-gray-400 font-medium text-xs hidden sm:inline truncate">Melhorador</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div
-                                    onClick={() => setCurrentView('profile')}
-                                    className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 border border-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 shadow-sm cursor-pointer hover:shadow-md transition-shadow hover:scale-110 active:scale-95"
+                <header className="h-16 border-b border-gray-200/50 flex items-center justify-between px-8 bg-white/80 backdrop-blur-xl sticky top-0 z-20">
+                    <div className="font-bold text-gray-900 tracking-tight text-base md:text-lg flex items-center gap-2 truncate">
+                        <span className="truncate">
+                            {currentView === 'dashboard' && 'Painel'}
+                            {currentView === 'history' && 'Histórico'}
+                            {currentView === 'projects' && 'Projetos'}
+                            {currentView === 'settings' && 'Ajustes'}
+                            {currentView === 'master-prompts' && 'Biblioteca'}
+                            {currentView === 'academy' && 'Academia'}
+                            {currentView === 'profile' && 'Perfil'}
+                        </span>
+                        <span className="text-gray-300 mx-1 text-[10px] hidden sm:inline">/</span>
+                        <span className="text-gray-400 font-medium text-xs hidden sm:inline truncate">Melhorador</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div
+                            onClick={() => setCurrentView('profile')}
+                            className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 border border-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 shadow-sm cursor-pointer hover:shadow-md transition-shadow hover:scale-110 active:scale-95"
+                        >
+                            👤
+                        </div>
+                    </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative z-10 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    {/* VIEW: DASHBOARD */}
+                    {currentView === 'dashboard' && (
+                        <div id="interview-mode-area" className="flex flex-col lg:flex-row gap-8 h-full max-w-[1600px] mx-auto animate-in fade-in duration-300">
+                            {/* Main Canvas */}
+                            <div className="flex-1 space-y-8">
+                                <div className="space-y-3 group">
+                                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-blue-600">Seu Prompt Bruto</label>
+                                    <div id="input-area" className="relative group">
+                                        <textarea
+                                            value={prompt}
+                                            onChange={(e) => setPrompt(e.target.value)}
+                                            placeholder={getPlaceholder()}
+                                            className={`w-full h-56 bg-white border rounded-[24px] p-8 focus:ring-4 outline-none transition-all resize-none text-base md:text-lg text-gray-900 placeholder:text-gray-300 shadow-sm hover:shadow-md ${prompt.length > 400 ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : 'border-gray-200 focus:ring-blue-500/10 focus:border-blue-500 hover:border-blue-300/50'}`}
+                                        />
+                                        <div className={`absolute bottom-5 right-6 text-[9px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-full border transition-all duration-300 ${prompt.length > 400 ? 'bg-red-50 text-red-500 border-red-200' : 'bg-gray-100/50 text-gray-400 border-gray-200/50 group-focus-within:border-blue-200 group-focus-within:text-blue-500'}`}>
+                                            {prompt.length} / 400
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => handleImprove()}
+                                    disabled={loading || !prompt || prompt.length > 400}
+                                    className={`w-full py-5 rounded-[24px] font-black text-lg text-white shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 relative overflow-hidden group ${loading || prompt.length > 400 ? 'bg-gray-400 cursor-not-allowed transform-none' : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:scale-[1.01] active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/30'}`}
                                 >
-                                    👤
+                                    {loading ? (
+                                        <>
+                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                                            <span>Otimizando...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="relative z-10">Melhorar Prompt ✨</span>
+                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
+                                        </>
+                                    )}
+                                </button>
+
+                                {/* Thinking State Overlay */}
+                                {loading && !improved && (
+                                    <div className="mt-12 bg-white/50 backdrop-blur-sm border-2 border-dashed border-gray-200 rounded-[32px] p-12 flex flex-col items-center justify-center text-center animate-pulse">
+                                        <div className="text-6xl mb-6 animate-bounce filter drop-shadow-lg">🧠</div>
+                                        <h3 className="text-xl font-black text-gray-900 mb-2">Otimizando Prompt...</h3>
+                                        <p className="text-gray-500 font-medium transition-all duration-300 transform">
+                                            {THINKING_STEPS[Math.min(thinkingStep, THINKING_STEPS.length - 1)]}
+                                        </p>
+                                        <div className="w-64 h-2 bg-gray-100 rounded-full mt-6 overflow-hidden">
+                                            <div
+                                                className="h-full bg-blue-600 transition-all duration-300 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]"
+                                                style={{ width: `${((thinkingStep + 1) / THINKING_STEPS.length) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {improved && (
+                                    <div className="mt-12 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+
+
+                                        <div className="flex justify-between items-end px-1">
+                                            <div className="flex items-center gap-4">
+                                                <button onClick={() => setViewMode('preview')} className={`text-[10px] font-black uppercase tracking-widest transition-colors ${viewMode === 'preview' ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>Normal</button>
+                                                <div className="w-px h-3 bg-gray-200"></div>
+                                                <button onClick={() => setViewMode('split')} className={`text-[10px] font-black uppercase tracking-widest transition-colors ${viewMode === 'split' ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>Lado a Lado</button>
+                                            </div>
+                                            {stats && (
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-[10px] text-green-600 font-bold italic bg-green-50 px-2 py-1 rounded-full border border-green-100 flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                                        {stats.economy > 5
+                                                            ? `Economia de ${stats.economy}% em tokens`
+                                                            : 'Estrutura Premium Otimizada'}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => setShowRaioX(!showRaioX)}
+                                                        className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${showRaioX ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'}`}
+                                                    >
+                                                        {showRaioX ? '✕ Fechar Raio-X' : '🔍 Ver Raio-X'}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsEditingImproved(!isEditingImproved)}
+                                                        className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${isEditingImproved ? 'bg-orange-600 border-orange-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500'}`}
+                                                    >
+                                                        {isEditingImproved ? '💾 Salvar Mudanças' : '✏️ Editar Prompt'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {showRaioX && stats?.reasoning && (
+                                            <div className="mb-4 p-4 bg-blue-50/30 border border-blue-100/50 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <p className="text-[10px] font-black uppercase text-blue-600 mb-2 flex items-center gap-2">
+                                                    <span>🧬</span> Engenharia de Prompt Aplicada:
+                                                </p>
+                                                <ul className="space-y-1.5">
+                                                    {stats.reasoning.map((item, idx) => (
+                                                        <li key={idx} className="text-[11px] text-blue-800 font-medium flex items-start gap-2">
+                                                            <span className="text-blue-400 mt-0.5">•</span>
+                                                            {item.trim()}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
+                                        <div className={`w-full bg-white border border-gray-200 rounded-[32px] p-6 md:p-8 pb-20 text-gray-900 leading-relaxed font-medium shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all duration-300 ${viewMode === 'split' ? 'max-w-none' : 'text-base md:text-lg'}`}>
+                                            {isEditingImproved ? (
+                                                <div className="animate-in fade-in duration-300 h-full min-h-[400px]">
+                                                    <textarea
+                                                        value={improved}
+                                                        onChange={(e) => setImproved(e.target.value)}
+                                                        placeholder="Edite seu prompt melhorado aqui..."
+                                                        className="w-full h-full min-h-[400px] bg-gray-50/50 border border-orange-200 rounded-2xl p-6 md:p-8 outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all text-base md:text-lg text-gray-900 font-medium resize-none"
+                                                    />
+                                                </div>
+                                            ) : viewMode === 'preview' ? (
+                                                <TypewriterText text={improved} speed={5} onComplete={handleTypingComplete} />
+                                            ) : (
+                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-10 items-stretch h-full min-h-[400px]">
+                                                    <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50 flex flex-col h-full">
+                                                        <span className="text-[10px] font-black uppercase text-gray-400 block mb-3 pb-2 border-b border-gray-200/50">Prompt Original</span>
+                                                        <p className="text-sm text-gray-500 italic leading-relaxed h-full overflow-y-auto">{prompt}</p>
+                                                    </div>
+                                                    <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100/50 flex flex-col h-full relative">
+                                                        <span className="text-[10px] font-black uppercase text-blue-600 block mb-3 pb-2 border-b border-blue-200/30">Otimização Premium</span>
+                                                        <div className="text-sm text-blue-900 leading-relaxed h-full overflow-y-auto">
+                                                            <TypewriterText text={improved} speed={5} />
+                                                        </div>
+                                                        <div className="absolute top-6 right-6 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-black rounded uppercase tracking-tighter animate-pulse">Melhorado</div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                                            <button
+                                                onClick={handleOpenExternal}
+                                                className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-xs font-black uppercase tracking-wide rounded-xl hover:bg-white hover:border-gray-300 hover:shadow-md transition-all flex items-center gap-2"
+                                            >
+                                                ↗ Abrir no {targetPlatform === 'gpt' ? 'ChatGPT' : 'Gemini'}
+                                            </button>
+                                            <button
+                                                onClick={handleCopy}
+                                                className={`px-5 py-2 rounded-xl shadow-lg transition-all flex items-center gap-2 border font-black text-xs uppercase tracking-wide transform active:scale-95 ${copied ? 'bg-green-500 border-green-600 text-white scale-105 shadow-green-200' : 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 hover:shadow-xl'}`}
+                                            >
+                                                {copied ? '✅ Copiado' : '📋 Copiar'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Sidebar / Settings Area */}
+                            <div id="output-area" className="w-full lg:w-80 min-h-fit lg:sticky top-0 space-y-6 transition-all duration-300 pb-10 lg:pb-0">
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl shadow-gray-200/50 border border-white/50 relative overflow-visible">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                                    <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 relative z-10">
+                                        <span className="w-8 h-8 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-lg flex items-center justify-center border border-blue-200 shadow-sm">💡</span>
+                                        Configurações
+                                    </h3>
+
+                                    <div className="space-y-5 relative z-10">
+                                        <div className="bg-gray-50/80 p-1.5 rounded-2xl flex relative border border-gray-100 mb-4">
+                                            <button
+                                                onClick={() => setTargetPlatform("gpt")}
+                                                className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex justify-center items-center gap-2 z-10 ${targetPlatform === 'gpt' ? 'bg-white shadow-sm text-green-600 ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'}`}
+                                            >
+                                                🤖 GPT
+                                            </button>
+                                            <button
+                                                onClick={() => setTargetPlatform("gemini")}
+                                                className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex justify-center items-center gap-2 z-10 ${targetPlatform === 'gemini' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'}`}
+                                            >
+                                                ✨ Gemini
+                                            </button>
+                                        </div>
+
+                                        <Selector
+                                            label="Intenção"
+                                            options={INTENTIONS}
+                                            value={context.intention}
+                                            onChange={handleIntentionChange}
+                                        />
+
+                                        <Selector
+                                            label="Persona"
+                                            options={DYNAMIC_OPTIONS[context.intention].personas}
+                                            value={context.persona}
+                                            onChange={(val) => setContext({ ...context, persona: val })}
+                                        />
+
+                                        <Selector
+                                            label="Tom de Voz"
+                                            options={DYNAMIC_OPTIONS[context.intention].tones}
+                                            value={context.tone}
+                                            onChange={(val) => setContext({ ...context, tone: val })}
+                                        />
+
+                                        <Selector
+                                            label="Objetivo"
+                                            options={DYNAMIC_OPTIONS[context.intention].goals}
+                                            value={context.goal}
+                                            onChange={(val) => setContext({ ...context, goal: val })}
+                                        />
+
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Salvar no Projeto</p>
+                                            <select
+                                                value={selectedProjectId}
+                                                onChange={(e) => setSelectedProjectId(e.target.value)}
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                                            >
+                                                <option value="">Sem Projeto (Histórico Geral)</option>
+                                                {projects.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </header>
+                        </div>
+                    )}
 
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative z-10">
-                            {/* VIEW: DASHBOARD */}
-                            {currentView === 'dashboard' && (
-                                <div id="interview-mode-area" className="flex flex-col lg:flex-row gap-8 h-full max-w-[1600px] mx-auto">
-                                    {/* Main Canvas */}
-                                    <div className="flex-1 space-y-8">
-                                        <div className="space-y-3 group">
-                                            <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-blue-600">Seu Prompt Bruto</label>
-                                            <div id="input-area" className="relative group">
-                                                <textarea
-                                                    value={prompt}
-                                                    onChange={(e) => setPrompt(e.target.value)}
-                                                    placeholder={getPlaceholder()}
-                                                    className={`w-full h-56 bg-white border rounded-[24px] p-8 focus:ring-4 outline-none transition-all resize-none text-base md:text-lg text-gray-900 placeholder:text-gray-300 shadow-sm hover:shadow-md ${prompt.length > 400 ? 'border-red-300 focus:ring-red-100 focus:border-red-500' : 'border-gray-200 focus:ring-blue-500/10 focus:border-blue-500 hover:border-blue-300/50'}`}
-                                                />
-                                                <div className={`absolute bottom-5 right-6 text-[9px] font-black uppercase tracking-tighter px-2.5 py-1 rounded-full border transition-all duration-300 ${prompt.length > 400 ? 'bg-red-50 text-red-500 border-red-200' : 'bg-gray-100/50 text-gray-400 border-gray-200/50 group-focus-within:border-blue-200 group-focus-within:text-blue-500'}`}>
-                                                    {prompt.length} / 400
-                                                </div>
-                                            </div>
+                    {/* VIEW: MASTER PROMPTS */}
+                    {currentView === 'master-prompts' && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                {MASTER_PROMPTS.map((mp, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleSelectMasterPrompt(mp.content)}
+                                        className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all text-left flex flex-col gap-4 group"
+                                    >
+                                        <div className="w-12 h-12 bg-blue-50 text-2xl flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">{mp.icon}</div>
+                                        <div>
+                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase text-sm tracking-wide">{mp.title}</h3>
+                                            <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">{mp.desc}</p>
                                         </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
-                                        <button
-                                            onClick={() => handleImprove()}
-                                            disabled={loading || !prompt || prompt.length > 400}
-                                            className={`w-full py-5 rounded-[24px] font-black text-lg text-white shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 relative overflow-hidden group ${loading || prompt.length > 400 ? 'bg-gray-400 cursor-not-allowed transform-none' : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:scale-[1.01] active:scale-[0.98] hover:shadow-2xl hover:shadow-blue-500/30'}`}
-                                        >
-                                            {loading ? (
-                                                <>
-                                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                                                    <span>Otimizando...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="relative z-10">Melhorar Prompt ✨</span>
-                                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-                                                </>
-                                            )}
-                                        </button>
-
-                                        {/* Thinking State Overlay */}
-                                        {loading && !improved && (
-                                            <div className="mt-12 bg-white/50 backdrop-blur-sm border-2 border-dashed border-gray-200 rounded-[32px] p-12 flex flex-col items-center justify-center text-center animate-pulse">
-                                                <div className="text-6xl mb-6 animate-bounce filter drop-shadow-lg">🧠</div>
-                                                <h3 className="text-xl font-black text-gray-900 mb-2">Otimizando Prompt...</h3>
-                                                <p className="text-gray-500 font-medium transition-all duration-300 transform">
-                                                    {THINKING_STEPS[Math.min(thinkingStep, THINKING_STEPS.length - 1)]}
-                                                </p>
-                                                <div className="w-64 h-2 bg-gray-100 rounded-full mt-6 overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-blue-600 transition-all duration-300 ease-out shadow-[0_0_10px_rgba(37,99,235,0.5)]"
-                                                        style={{ width: `${((thinkingStep + 1) / THINKING_STEPS.length) * 100}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {improved && (
-                                            <div className="mt-12 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-
-
-                                                <div className="flex justify-between items-end px-1">
-                                                    <div className="flex items-center gap-4">
-                                                        <button onClick={() => setViewMode('preview')} className={`text-[10px] font-black uppercase tracking-widest transition-colors ${viewMode === 'preview' ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>Normal</button>
-                                                        <div className="w-px h-3 bg-gray-200"></div>
-                                                        <button onClick={() => setViewMode('split')} className={`text-[10px] font-black uppercase tracking-widest transition-colors ${viewMode === 'split' ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>Lado a Lado</button>
-                                                    </div>
-                                                    {stats && (
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-[10px] text-green-600 font-bold italic bg-green-50 px-2 py-1 rounded-full border border-green-100 flex items-center gap-1.5">
-                                                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                                                                {stats.economy > 5
-                                                                    ? `Economia de ${stats.economy}% em tokens`
-                                                                    : 'Estrutura Premium Otimizada'}
-                                                            </span>
-                                                            <button
-                                                                onClick={() => setShowRaioX(!showRaioX)}
-                                                                className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${showRaioX ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'}`}
-                                                            >
-                                                                {showRaioX ? '✕ Fechar Raio-X' : '🔍 Ver Raio-X'}
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setIsEditingImproved(!isEditingImproved)}
-                                                                className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${isEditingImproved ? 'bg-orange-600 border-orange-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500'}`}
-                                                            >
-                                                                {isEditingImproved ? '💾 Salvar Mudanças' : '✏️ Editar Prompt'}
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {showRaioX && stats?.reasoning && (
-                                                    <div className="mb-4 p-4 bg-blue-50/30 border border-blue-100/50 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
-                                                        <p className="text-[10px] font-black uppercase text-blue-600 mb-2 flex items-center gap-2">
-                                                            <span>🧬</span> Engenharia de Prompt Aplicada:
-                                                        </p>
-                                                        <ul className="space-y-1.5">
-                                                            {stats.reasoning.map((item, idx) => (
-                                                                <li key={idx} className="text-[11px] text-blue-800 font-medium flex items-start gap-2">
-                                                                    <span className="text-blue-400 mt-0.5">•</span>
-                                                                    {item.trim()}
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                )}
-
-                                                <div className={`w-full bg-white border border-gray-200 rounded-[32px] p-6 md:p-8 pb-20 text-gray-900 leading-relaxed font-medium shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all duration-300 ${viewMode === 'split' ? 'max-w-none' : 'text-base md:text-lg'}`}>
-                                                    {isEditingImproved ? (
-                                                        <div className="animate-in fade-in duration-300 h-full min-h-[400px]">
-                                                            <textarea
-                                                                value={improved}
-                                                                onChange={(e) => setImproved(e.target.value)}
-                                                                placeholder="Edite seu prompt melhorado aqui..."
-                                                                className="w-full h-full min-h-[400px] bg-gray-50/50 border border-orange-200 rounded-2xl p-6 md:p-8 outline-none focus:ring-4 focus:ring-orange-500/10 focus:border-orange-500 transition-all text-base md:text-lg text-gray-900 font-medium resize-none"
-                                                            />
-                                                        </div>
-                                                    ) : viewMode === 'preview' ? (
-                                                        <TypewriterText text={improved} speed={5} onComplete={handleTypingComplete} />
-                                                    ) : (
-                                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-10 items-stretch h-full min-h-[400px]">
-                                                            <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100/50 flex flex-col h-full">
-                                                                <span className="text-[10px] font-black uppercase text-gray-400 block mb-3 pb-2 border-b border-gray-200/50">Prompt Original</span>
-                                                                <p className="text-sm text-gray-500 italic leading-relaxed h-full overflow-y-auto">{prompt}</p>
-                                                            </div>
-                                                            <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100/50 flex flex-col h-full relative">
-                                                                <span className="text-[10px] font-black uppercase text-blue-600 block mb-3 pb-2 border-b border-blue-200/30">Otimização Premium</span>
-                                                                <div className="text-sm text-blue-900 leading-relaxed h-full overflow-y-auto">
-                                                                    <TypewriterText text={improved} speed={5} />
-                                                                </div>
-                                                                <div className="absolute top-6 right-6 px-2 py-0.5 bg-blue-600 text-[8px] text-white font-black rounded uppercase tracking-tighter animate-pulse">Melhorado</div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                                                    <button
-                                                        onClick={handleOpenExternal}
-                                                        className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-xs font-black uppercase tracking-wide rounded-xl hover:bg-white hover:border-gray-300 hover:shadow-md transition-all flex items-center gap-2"
-                                                    >
-                                                        ↗ Abrir no {targetPlatform === 'gpt' ? 'ChatGPT' : 'Gemini'}
-                                                    </button>
-                                                    <button
-                                                        onClick={handleCopy}
-                                                        className={`px-5 py-2 rounded-xl shadow-lg transition-all flex items-center gap-2 border font-black text-xs uppercase tracking-wide transform active:scale-95 ${copied ? 'bg-green-500 border-green-600 text-white scale-105 shadow-green-200' : 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 hover:shadow-xl'}`}
-                                                    >
-                                                        {copied ? '✅ Copiado' : '📋 Copiar'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Sidebar / Settings Area */}
-                                    <div id="output-area" className="w-full lg:w-80 min-h-fit lg:sticky top-0 space-y-6 transition-all duration-300 pb-10 lg:pb-0">
-                                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl shadow-gray-200/50 border border-white/50 relative overflow-visible">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-                                            <h3 className="font-black text-gray-900 mb-6 flex items-center gap-3 relative z-10">
-                                                <span className="w-8 h-8 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-lg flex items-center justify-center border border-blue-200 shadow-sm">💡</span>
-                                                Configurações
-                                            </h3>
-
-                                            <div className="space-y-5 relative z-10">
-                                                <div className="bg-gray-50/80 p-1.5 rounded-2xl flex relative border border-gray-100 mb-4">
-                                                    <button
-                                                        onClick={() => setTargetPlatform("gpt")}
-                                                        className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex justify-center items-center gap-2 z-10 ${targetPlatform === 'gpt' ? 'bg-white shadow-sm text-green-600 ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'}`}
-                                                    >
-                                                        🤖 GPT
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setTargetPlatform("gemini")}
-                                                        className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex justify-center items-center gap-2 z-10 ${targetPlatform === 'gemini' ? 'bg-white shadow-sm text-blue-600 ring-1 ring-black/5' : 'text-gray-400 hover:text-gray-600'}`}
-                                                    >
-                                                        ✨ Gemini
-                                                    </button>
-                                                </div>
-
-                                                <Selector
-                                                    label="Intenção"
-                                                    options={INTENTIONS}
-                                                    value={context.intention}
-                                                    onChange={handleIntentionChange}
-                                                />
-
-                                                <Selector
-                                                    label="Persona"
-                                                    options={DYNAMIC_OPTIONS[context.intention].personas}
-                                                    value={context.persona}
-                                                    onChange={(val) => setContext({ ...context, persona: val })}
-                                                />
-
-                                                <Selector
-                                                    label="Tom de Voz"
-                                                    options={DYNAMIC_OPTIONS[context.intention].tones}
-                                                    value={context.tone}
-                                                    onChange={(val) => setContext({ ...context, tone: val })}
-                                                />
-
-                                                <Selector
-                                                    label="Objetivo"
-                                                    options={DYNAMIC_OPTIONS[context.intention].goals}
-                                                    value={context.goal}
-                                                    onChange={(val) => setContext({ ...context, goal: val })}
-                                                />
-
-                                                <div className="pt-4 border-t border-gray-100">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2">Salvar no Projeto</p>
-                                                    <select
-                                                        value={selectedProjectId}
-                                                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                                                    >
-                                                        <option value="">Sem Projeto (Histórico Geral)</option>
-                                                        {projects.map(p => (
-                                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
+                    {/* VIEW: HISTORY */}
+                    {currentView === 'history' && (
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-black text-gray-900 border-b pb-4">Histórico</h2>
+                            {history.length === 0 ? (
+                                <div className="p-20 text-center opacity-40 italic">Nenhum prompt salvo ainda.</div>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {history.map((entry) => (
+                                        <div key={entry.id} className="bg-white p-6 rounded-2xl border border-gray-200 group relative">
+                                            <button onClick={() => deletePrompt(entry.id)} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
+                                            <p className={`text-sm font-bold mb-2 ${entry.model === 'gpt' ? 'text-green-600' : 'text-blue-600'}`}>
+                                                {entry.model?.toUpperCase() || 'GEMINI'}
+                                            </p>
+                                            <p className="text-sm text-gray-600 line-clamp-2">{entry.original}</p>
                                         </div>
-                                    </div>
+                                    ))}
                                 </div>
                             )}
+                        </div>
+                    )}
 
-                            {/* VIEW: MASTER PROMPTS */}
-                            {currentView === 'master-prompts' && (
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                        {MASTER_PROMPTS.map((mp, idx) => (
-                                            <button
-                                                key={idx}
-                                                onClick={() => handleSelectMasterPrompt(mp.content)}
-                                                className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all text-left flex flex-col gap-4 group"
-                                            >
-                                                <div className="w-12 h-12 bg-blue-50 text-2xl flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">{mp.icon}</div>
-                                                <div>
-                                                    <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase text-sm tracking-wide">{mp.title}</h3>
-                                                    <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">{mp.desc}</p>
-                                                </div>
+                    {/* VIEW: PROJECTS */}
+                    {currentView === 'projects' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-3xl font-black text-gray-900">
+                                        {openProjectId ? (
+                                            <button onClick={() => setOpenProjectId(null)} className="flex items-center gap-3 hover:text-blue-600 transition-colors">
+                                                <span>←</span>
+                                                <span>{projects.find(p => p.id === openProjectId)?.name}</span>
                                             </button>
+                                        ) : (
+                                            'Meus Projetos 📁'
+                                        )}
+                                    </h2>
+                                    <p className="text-gray-500 mt-1">
+                                        {openProjectId ? 'Visualize todos os prompts salvos neste projeto.' : 'Organize seus prompts por campanhas ou clientes.'}
+                                    </p>
+                                </div>
+                                {!openProjectId && (
+                                    <button
+                                        onClick={() => setShowNewProjectModal(true)}
+                                        className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all"
+                                    >
+                                        + Novo Projeto
+                                    </button>
+                                )}
+                            </div>
+
+                            {!openProjectId ? (
+                                projects.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center p-20 bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-[40px] text-center space-y-4">
+                                        <div className="text-6xl opacity-20">📁</div>
+                                        <p className="text-gray-400 font-bold">Nenhum projeto criado ainda.</p>
+                                        <button onClick={() => setShowNewProjectModal(true)} className="text-blue-600 font-black text-sm hover:underline">Clique para criar seu primeiro projeto</button>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                        {projects.map(project => (
+                                            <div key={project.id} className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group relative">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteProject(project.id);
+                                                    }}
+                                                    className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl"
+                                                >
+                                                    🗑️
+                                                </button>
+                                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-6">📂</div>
+                                                <h3 className="text-xl font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{project.name}</h3>
+                                                <p className="text-sm text-gray-400 mt-2 leading-relaxed line-clamp-2">{project.description}</p>
+                                                <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between">
+                                                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{project.prompts.length} Prompts</span>
+                                                    <button onClick={() => setOpenProjectId(project.id)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Abrir Pasta →</button>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
-                                </div>
-                            )}
-
-                            {/* VIEW: HISTORY */}
-                            {currentView === 'history' && (
-                                <div className="space-y-6">
-                                    <h2 className="text-2xl font-black text-gray-900 border-b pb-4">Histórico</h2>
-                                    {history.length === 0 ? (
-                                        <div className="p-20 text-center opacity-40 italic">Nenhum prompt salvo ainda.</div>
+                                )
+                            ) : (
+                                <div className="space-y-4">
+                                    {projects.find(p => p.id === openProjectId)?.prompts.length === 0 ? (
+                                        <div className="p-20 text-center opacity-40 italic">Nenhum prompt salvo neste projeto.</div>
                                     ) : (
                                         <div className="grid gap-4">
-                                            {history.map((entry) => (
-                                                <div key={entry.id} className="bg-white p-6 rounded-2xl border border-gray-200 group relative">
-                                                    <button onClick={() => deletePrompt(entry.id)} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
-                                                    <p className={`text-sm font-bold mb-2 ${entry.model === 'gpt' ? 'text-green-600' : 'text-blue-600'}`}>
-                                                        {entry.model?.toUpperCase() || 'GEMINI'}
-                                                    </p>
-                                                    <p className="text-sm text-gray-600 line-clamp-2">{entry.original}</p>
+                                            {projects.find(p => p.id === openProjectId)?.prompts.map((p) => (
+                                                <div key={p.id} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                                                    <div className="flex justify-between items-start mb-4">
+                                                        <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(p.timestamp).toLocaleDateString()}</span>
+                                                        <button onClick={() => {
+                                                            setPrompt(p.original);
+                                                            setImproved(p.improved);
+                                                            setCurrentView('dashboard');
+                                                            setOpenProjectId(null);
+                                                        }} className="text-[10px] font-black text-blue-600 uppercase hover:underline">Carregar no Dashboard</button>
+                                                    </div>
+                                                    <p className="text-xs font-bold text-gray-400 mb-1 uppercase tracking-tighter">Original:</p>
+                                                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 italic">&quot;{p.original}&quot;</p>
+                                                    <p className="text-xs font-bold text-blue-600 mb-1 uppercase tracking-tighter">Otimizado:</p>
+                                                    <p className="text-sm text-gray-900 line-clamp-3 leading-relaxed">{p.improved}</p>
                                                 </div>
                                             ))}
                                         </div>
@@ -1057,420 +1142,326 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                 </div>
                             )}
 
-                            {/* VIEW: PROJECTS */}
-                            {currentView === 'projects' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <h2 className="text-3xl font-black text-gray-900">
-                                                {openProjectId ? (
-                                                    <button onClick={() => setOpenProjectId(null)} className="flex items-center gap-3 hover:text-blue-600 transition-colors">
-                                                        <span>←</span>
-                                                        <span>{projects.find(p => p.id === openProjectId)?.name}</span>
-                                                    </button>
-                                                ) : (
-                                                    'Meus Projetos 📁'
-                                                )}
-                                            </h2>
-                                            <p className="text-gray-500 mt-1">
-                                                {openProjectId ? 'Visualize todos os prompts salvos neste projeto.' : 'Organize seus prompts por campanhas ou clientes.'}
-                                            </p>
-                                        </div>
-                                        {!openProjectId && (
-                                            <button
-                                                onClick={() => setShowNewProjectModal(true)}
-                                                className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all"
-                                            >
-                                                + Novo Projeto
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {!openProjectId ? (
-                                        projects.length === 0 ? (
-                                            <div className="flex flex-col items-center justify-center p-20 bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-[40px] text-center space-y-4">
-                                                <div className="text-6xl opacity-20">📁</div>
-                                                <p className="text-gray-400 font-bold">Nenhum projeto criado ainda.</p>
-                                                <button onClick={() => setShowNewProjectModal(true)} className="text-blue-600 font-black text-sm hover:underline">Clique para criar seu primeiro projeto</button>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                                {projects.map(project => (
-                                                    <div key={project.id} className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group relative">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                deleteProject(project.id);
-                                                            }}
-                                                            className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl"
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-6">📂</div>
-                                                        <h3 className="text-xl font-black text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{project.name}</h3>
-                                                        <p className="text-sm text-gray-400 mt-2 leading-relaxed line-clamp-2">{project.description}</p>
-                                                        <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between">
-                                                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{project.prompts.length} Prompts</span>
-                                                            <button onClick={() => setOpenProjectId(project.id)} className="text-[10px] font-black text-blue-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Abrir Pasta →</button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )
-                                    ) : (
+                            {/* New Project Modal */}
+                            {showNewProjectModal && (
+                                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+                                    <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowNewProjectModal(false)}></div>
+                                    <div className="bg-white rounded-[40px] p-10 max-w-md w-full relative z-10 shadow-2xl border border-white animate-in zoom-in duration-300">
+                                        <h3 className="text-2xl font-black text-gray-900 mb-6">Criar Novo Projeto</h3>
                                         <div className="space-y-4">
-                                            {projects.find(p => p.id === openProjectId)?.prompts.length === 0 ? (
-                                                <div className="p-20 text-center opacity-40 italic">Nenhum prompt salvo neste projeto.</div>
-                                            ) : (
-                                                <div className="grid gap-4">
-                                                    {projects.find(p => p.id === openProjectId)?.prompts.map((p) => (
-                                                        <div key={p.id} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-                                                            <div className="flex justify-between items-start mb-4">
-                                                                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(p.timestamp).toLocaleDateString()}</span>
-                                                                <button onClick={() => {
-                                                                    setPrompt(p.original);
-                                                                    setImproved(p.improved);
-                                                                    setCurrentView('dashboard');
-                                                                    setOpenProjectId(null);
-                                                                }} className="text-[10px] font-black text-blue-600 uppercase hover:underline">Carregar no Dashboard</button>
-                                                            </div>
-                                                            <p className="text-xs font-bold text-gray-400 mb-1 uppercase tracking-tighter">Original:</p>
-                                                            <p className="text-sm text-gray-600 mb-4 line-clamp-2 italic">&quot;{p.original}&quot;</p>
-                                                            <p className="text-xs font-bold text-blue-600 mb-1 uppercase tracking-tighter">Otimizado:</p>
-                                                            <p className="text-sm text-gray-900 line-clamp-3 leading-relaxed">{p.improved}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* New Project Modal */}
-                                    {showNewProjectModal && (
-                                        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-                                            <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowNewProjectModal(false)}></div>
-                                            <div className="bg-white rounded-[40px] p-10 max-w-md w-full relative z-10 shadow-2xl border border-white animate-in zoom-in duration-300">
-                                                <h3 className="text-2xl font-black text-gray-900 mb-6">Criar Novo Projeto</h3>
-                                                <div className="space-y-4">
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-xs">Nome do Projeto</label>
-                                                        <input
-                                                            type="text"
-                                                            value={newProjectName}
-                                                            onChange={(e) => setNewProjectName(e.target.value)}
-                                                            className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-gray-900"
-                                                            placeholder="Ex: Lançamento Curso de IA"
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-xs">Descrição (Opcional)</label>
-                                                        <textarea
-                                                            value={newProjectDesc}
-                                                            onChange={(e) => setNewProjectDesc(e.target.value)}
-                                                            className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-gray-900 resize-none h-24"
-                                                            placeholder="Para que serve este projeto?"
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            if (!newProjectName) return;
-                                                            addProject(newProjectName, newProjectDesc);
-                                                            setNewProjectName("");
-                                                            setNewProjectDesc("");
-                                                            setShowNewProjectModal(false);
-                                                        }}
-                                                        className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 mt-4"
-                                                    >
-                                                        Criar Projeto 🚀
-                                                    </button>
-                                                </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-xs">Nome do Projeto</label>
+                                                <input
+                                                    type="text"
+                                                    value={newProjectName}
+                                                    onChange={(e) => setNewProjectName(e.target.value)}
+                                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-gray-900"
+                                                    placeholder="Ex: Lançamento Curso de IA"
+                                                />
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* VIEW: ACADEMY */}
-                            {currentView === 'academy' && (
-                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h2 className="text-3xl font-black text-gray-900">Academia AI 🎓</h2>
-                                            <p className="text-gray-500 mt-1">Aprenda a arte de conversar com a inteligência artificial.</p>
-                                        </div>
-                                        <div className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-xl font-bold text-sm border border-yellow-200">
-                                            Nível: Iniciante ao Expert
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                        {ACADEMY_LESSONS.map((lesson) => (
-                                            <div key={lesson.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4 flex flex-col justify-between group hover:border-blue-200 transition-all">
-                                                <div className="space-y-4">
-                                                    <div className={`w-12 h-12 ${lesson.color} rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform`}>{lesson.icon}</div>
-                                                    <h3 className="font-black text-gray-900 text-sm leading-tight">{lesson.title}</h3>
-                                                    <p className="text-[10px] text-gray-500 leading-relaxed">
-                                                        {lesson.desc}
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => {
-                                                        setPrompt(lesson.promptSnippet);
-                                                        setImproved("");
-                                                        setStats(null);
-                                                        setCurrentView('dashboard');
-                                                    }}
-                                                    className="w-full py-2 bg-gray-50 text-gray-500 rounded-xl font-bold text-[10px] hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest"
-                                                >
-                                                    Copiar Técnica
-                                                </button>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-xs">Descrição (Opcional)</label>
+                                                <textarea
+                                                    value={newProjectDesc}
+                                                    onChange={(e) => setNewProjectDesc(e.target.value)}
+                                                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-gray-900 resize-none h-24"
+                                                    placeholder="Para que serve este projeto?"
+                                                />
                                             </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="bg-gray-900 rounded-[40px] p-8 text-white relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/30 transition-all duration-700"></div>
-                                        <div className="relative z-10 grid grid-cols-2 gap-12 items-center">
-                                            <div className="space-y-4">
-                                                <h3 className="text-2xl font-black italic">Dica de Ouro: Few-Shot Prompting</h3>
-                                                <p className="text-gray-300 text-sm leading-relaxed">
-                                                    Não apenas explique, mostre! Forneça 2 ou 3 exemplos do que você espera antes de pedir o resultado final. A IA aprende o padrão instantaneamente e entrega algo muito mais preciso.
-                                                </p>
-                                                <button
-                                                    onClick={() => setShowAcademyModal(true)}
-                                                    className="px-6 py-2 bg-white text-gray-900 rounded-full font-black text-xs hover:scale-105 transition-transform active:scale-95"
-                                                >
-                                                    Ver Exemplo Prático
-                                                </button>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
-                                                    <div className="text-xl mb-1">🤖</div>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ChatGPT</p>
-                                                    <p className="text-xs font-medium">Reage melhor a lógica direta.</p>
-                                                </div>
-                                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
-                                                    <div className="text-xl mb-1">✨</div>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gemini</p>
-                                                    <p className="text-xs font-medium">Excelente com links e buscas.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Academy Modal */}
-                                    {showAcademyModal && (
-                                        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
-                                            <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setShowAcademyModal(false)}></div>
-                                            <div className="bg-white rounded-t-[40px] md:rounded-[48px] p-8 md:p-12 max-w-2xl w-full relative z-10 shadow-2xl border border-white animate-in slide-in-from-bottom md:zoom-in duration-300 overflow-y-auto max-h-[90vh]">
-                                                <div className="absolute top-0 right-0 p-6 md:p-8">
-                                                    <button onClick={() => setShowAcademyModal(false)} className="text-gray-300 hover:text-gray-900 text-xl transition-colors">✕</button>
-                                                </div>
-                                                <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-6 md:mb-8 border-b border-gray-100 pb-4 md:pb-6 uppercase tracking-tighter">Exemplo Prático</h3>
-
-                                                <div className="space-y-6">
-                                                    <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O Erro Comum (Zero-Shot)</p>
-                                                        <p className="text-sm font-bold text-gray-600 italic">&quot;Escreva 3 títulos de blog sobre dieta low-carb.&quot;</p>
-                                                    </div>
-
-                                                    <div className="p-8 bg-blue-600 rounded-3xl text-white relative">
-                                                        <div className="absolute -top-3 left-8 bg-black text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">O Jeito Certo (Few-Shot)</div>
-                                                        <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-4">Instrução com Exemplos:</p>
-                                                        <p className="text-sm font-bold leading-relaxed">
-                                                            &quot;Escreva 3 títulos de blog sobre dieta low-carb seguindo o padrão abaixo:<br /><br />
-                                                            Ex 1: &apos;5 Mitos sobre corrida que estão destruindo seus joelhos&apos;<br />
-                                                            Ex 2: &apos;Como emagrecer comendo pizza: A verdade sobre calorias&apos;<br /><br />
-                                                            Agora gere os títulos para dieta low-carb:&quot;
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="pt-4 text-center">
-                                                        <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Resultado: A IA entende que você quer títulos de &quot;curiosidade/contraintuitivos&quot; e não títulos genéricos.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* VIEW: SETTINGS */}
-                            {currentView === 'settings' && (
-                                <div className="max-w-md mx-auto space-y-8 pt-10">
-                                    <h2 className="text-2xl font-black text-gray-900 text-center uppercase tracking-widest">Configurações</h2>
-                                    <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
-                                        <div className="flex justify-between items-center text-sm font-bold text-gray-600">
-                                            <span>Dark Mode</span>
-                                            <span className="text-gray-300">Em breve</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-bold text-gray-600">
-                                            <span>Token Usage</span>
-                                            <span className="text-green-500">Ilimitado</span>
-                                        </div>
-                                        <div className="flex justify-between items-center text-sm font-bold text-gray-600">
-                                            <span>Assinatura</span>
-                                            {isPro ? (
-                                                <button
-                                                    onClick={handleManageSubscription}
-                                                    className="text-blue-600 hover:underline"
-                                                    disabled={loading}
-                                                >
-                                                    Gerenciar
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={handleUpgrade}
-                                                    className="text-orange-500 hover:underline"
-                                                    disabled={loading}
-                                                >
-                                                    Assinar Pro
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
-                                            <a href="/terms" target="_blank" className="text-xs font-bold text-blue-600 hover:underline">Termos de Uso</a>
-                                            <a href="/privacy" target="_blank" className="text-xs font-bold text-blue-600 hover:underline">Política de Privacidade</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* VIEW: PROFILE */}
-                            {currentView === 'profile' && (
-                                <div className="flex justify-center items-center h-full">
-                                    <div className="bg-white p-12 rounded-[50px] shadow-2xl border border-gray-100 max-w-sm w-full text-center space-y-6">
-                                        <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto flex items-center justify-center text-4xl">
-                                            {isPro ? '💎' : '👤'}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="text-2xl font-black text-gray-900">
-                                                {isPro ? 'Membro Pro' : 'Membro'}
-                                            </h3>
-                                            <p className="text-sm font-bold text-blue-600">{userEmail || 'Acesso Limitado'}</p>
-                                        </div>
-                                        <div className="pt-2">
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Precisa alterar seus dados?</p>
-                                            <a
-                                                href={`mailto:contato.melhoreai@gmail.com?subject=Alteração de Dados - ${userEmail}`}
-                                                className="text-xs font-black text-blue-600 hover:underline"
+                                            <button
+                                                onClick={() => {
+                                                    if (!newProjectName) return;
+                                                    addProject(newProjectName, newProjectDesc);
+                                                    setNewProjectName("");
+                                                    setNewProjectDesc("");
+                                                    setShowNewProjectModal(false);
+                                                }}
+                                                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95 mt-4"
                                             >
-                                                Falar com o Suporte →
-                                            </a>
+                                                Criar Projeto 🚀
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={isPro ? handleManageSubscription : handleUpgrade}
-                                            disabled={loading}
-                                            className={`w-full py-4 font-bold border-2 rounded-2xl transition-all flex items-center justify-center gap-2 ${isPro ? 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-white hover:border-blue-100 hover:text-blue-600' : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'}`}
-                                        >
-                                            <span>{isPro ? '💳' : '🚀'}</span>
-                                            <span>{isPro ? 'Gerenciar Assinatura' : 'Assinar Pro'}</span>
-                                        </button>
-
-
-
-                                        <button onClick={onLogout} className="w-full py-4 text-red-500 font-black border-2 border-red-50 rounded-2xl hover:bg-red-50 transition-colors">Sair da Conta</button>
                                     </div>
                                 </div>
                             )}
                         </div>
-                    </main>
+                    )}
 
-                    <MobileNav activePage={currentView} onNavigate={(page) => setCurrentView(page)} />
-
-                    {/* FEEDBACK MODAL */}
-                    {
-                        showFeedbackModal && (
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                                <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => !sendingFeedback && setShowFeedbackModal(false)}></div>
-                                <div className="bg-white rounded-[40px] shadow-2xl border border-gray-100 w-full max-w-lg relative z-10 overflow-hidden animate-in fade-in zoom-in duration-300">
-                                    <div className="p-8">
-                                        <div className="flex items-center justify-between mb-8">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl">💬</div>
-                                                <div>
-                                                    <h2 className="text-xl font-black text-gray-900">Enviar Feedback</h2>
-                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sua opinião é vital</p>
-                                                </div>
-                                            </div>
-                                            <button onClick={() => setShowFeedbackModal(false)} className="text-gray-300 hover:text-gray-600 transition-colors">✕</button>
-                                        </div>
-
-                                        {feedbackSuccess ? (
-                                            <div className="py-12 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                                                <div className="text-5xl">✅</div>
-                                                <h3 className="text-xl font-black text-gray-900">Obrigado!</h3>
-                                                <p className="text-sm font-medium text-gray-500">Seu feedback foi recebido com sucesso.</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-6">
-                                                <div className="space-y-3">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sobre o que você quer falar?</p>
-                                                    <div className="grid grid-cols-3 gap-2">
-                                                        {["Sugestão", "Bug", "Elogio"].map((cat) => (
-                                                            <button
-                                                                key={cat}
-                                                                onClick={() => setFeedbackCategory(cat)}
-                                                                className={`py-3 rounded-2xl font-bold text-xs transition-all ${feedbackCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
-                                                            >
-                                                                {cat}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-3">
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sua Mensagem</p>
-                                                    <textarea
-                                                        value={feedbackMessage}
-                                                        onChange={(e) => setFeedbackMessage(e.target.value)}
-                                                        placeholder="Descreva aqui sua sugestão, problema ou elogio..."
-                                                        className="w-full bg-gray-50 border border-gray-100 rounded-3xl p-5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-[150px] transition-all"
-                                                    />
-                                                </div>
-
-                                                <button
-                                                    onClick={handleSendFeedback}
-                                                    disabled={sendingFeedback || !feedbackMessage.trim()}
-                                                    className="w-full py-5 bg-gray-900 text-white rounded-[24px] font-black text-sm hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:bg-gray-900 flex items-center justify-center gap-2"
-                                                >
-                                                    {sendingFeedback ? 'Enviando...' : 'Enviar Agora'}
-                                                    {!sendingFeedback && <span>🚀</span>}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                    {/* VIEW: ACADEMY */}
+                    {currentView === 'academy' && (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-3xl font-black text-gray-900">Academia AI 🎓</h2>
+                                    <p className="text-gray-500 mt-1">Aprenda a arte de conversar com a inteligência artificial.</p>
+                                </div>
+                                <div className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-xl font-bold text-sm border border-yellow-200">
+                                    Nível: Iniciante ao Expert
                                 </div>
                             </div>
-                        )
-                    }
 
-                    {/* NOTICE MODAL */}
-                    {
-                        notice && (
-                            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-                                <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setNotice(null)}></div>
-                                <div className="bg-white rounded-[40px] shadow-2xl border-4 border-blue-600 w-full max-w-md relative z-10 overflow-hidden animate-in fade-in zoom-in duration-300">
-                                    <div className="p-10 text-center space-y-6">
-                                        <div className="w-20 h-20 bg-blue-50 rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-inner">💡</div>
-                                        <div className="space-y-2">
-                                            <h2 className="text-2xl font-black text-gray-900">{notice.title}</h2>
-                                            <p className="text-sm font-bold text-gray-500 leading-relaxed">{notice.message}</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                {ACADEMY_LESSONS.map((lesson) => (
+                                    <div key={lesson.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4 flex flex-col justify-between group hover:border-blue-200 transition-all">
+                                        <div className="space-y-4">
+                                            <div className={`w-12 h-12 ${lesson.color} rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition-transform`}>{lesson.icon}</div>
+                                            <h3 className="font-black text-gray-900 text-sm leading-tight">{lesson.title}</h3>
+                                            <p className="text-[10px] text-gray-500 leading-relaxed">
+                                                {lesson.desc}
+                                            </p>
                                         </div>
                                         <button
-                                            onClick={() => setNotice(null)}
-                                            className="w-full py-5 bg-blue-600 text-white rounded-[24px] font-black text-sm hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100"
+                                            onClick={() => {
+                                                setPrompt(lesson.promptSnippet);
+                                                setImproved("");
+                                                setStats(null);
+                                                setCurrentView('dashboard');
+                                            }}
+                                            className="w-full py-2 bg-gray-50 text-gray-500 rounded-xl font-bold text-[10px] hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest"
                                         >
-                                            Entendi, vamos lá!
+                                            Copiar Técnica
                                         </button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="bg-gray-900 rounded-[40px] p-8 text-white relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/30 transition-all duration-700"></div>
+                                <div className="relative z-10 grid grid-cols-2 gap-12 items-center">
+                                    <div className="space-y-4">
+                                        <h3 className="text-2xl font-black italic">Dica de Ouro: Few-Shot Prompting</h3>
+                                        <p className="text-gray-300 text-sm leading-relaxed">
+                                            Não apenas explique, mostre! Forneça 2 ou 3 exemplos do que você espera antes de pedir o resultado final. A IA aprende o padrão instantaneamente e entrega algo muito mais preciso.
+                                        </p>
+                                        <button
+                                            onClick={() => setShowAcademyModal(true)}
+                                            className="px-6 py-2 bg-white text-gray-900 rounded-full font-black text-xs hover:scale-105 transition-transform active:scale-95"
+                                        >
+                                            Ver Exemplo Prático
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                                            <div className="text-xl mb-1">🤖</div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ChatGPT</p>
+                                            <p className="text-xs font-medium">Reage melhor a lógica direta.</p>
+                                        </div>
+                                        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-center">
+                                            <div className="text-xl mb-1">✨</div>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gemini</p>
+                                            <p className="text-xs font-medium">Excelente com links e buscas.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        )
-                    }
-                </>
+
+                            {/* Academy Modal */}
+                            {showAcademyModal && (
+                                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+                                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-md" onClick={() => setShowAcademyModal(false)}></div>
+                                    <div className="bg-white rounded-t-[40px] md:rounded-[48px] p-8 md:p-12 max-w-2xl w-full relative z-10 shadow-2xl border border-white animate-in slide-in-from-bottom md:zoom-in duration-300 overflow-y-auto max-h-[90vh]">
+                                        <div className="absolute top-0 right-0 p-6 md:p-8">
+                                            <button onClick={() => setShowAcademyModal(false)} className="text-gray-300 hover:text-gray-900 text-xl transition-colors">✕</button>
+                                        </div>
+                                        <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-6 md:mb-8 border-b border-gray-100 pb-4 md:pb-6 uppercase tracking-tighter">Exemplo Prático</h3>
+
+                                        <div className="space-y-6">
+                                            <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">O Erro Comum (Zero-Shot)</p>
+                                                <p className="text-sm font-bold text-gray-600 italic">&quot;Escreva 3 títulos de blog sobre dieta low-carb.&quot;</p>
+                                            </div>
+
+                                            <div className="p-8 bg-blue-600 rounded-3xl text-white relative">
+                                                <div className="absolute -top-3 left-8 bg-black text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">O Jeito Certo (Few-Shot)</div>
+                                                <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-4">Instrução com Exemplos:</p>
+                                                <p className="text-sm font-bold leading-relaxed">
+                                                    &quot;Escreva 3 títulos de blog sobre dieta low-carb seguindo o padrão abaixo:<br /><br />
+                                                    Ex 1: &apos;5 Mitos sobre corrida que estão destruindo seus joelhos&apos;<br />
+                                                    Ex 2: &apos;Como emagrecer comendo pizza: A verdade sobre calorias&apos;<br /><br />
+                                                    Agora gere os títulos para dieta low-carb:&quot;
+                                                </p>
+                                            </div>
+
+                                            <div className="pt-4 text-center">
+                                                <p className="text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em]">Resultado: A IA entende que você quer títulos de &quot;curiosidade/contraintuitivos&quot; e não títulos genéricos.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* VIEW: SETTINGS */}
+                    {currentView === 'settings' && (
+                        <div className="max-w-md mx-auto space-y-8 pt-10">
+                            <h2 className="text-2xl font-black text-gray-900 text-center uppercase tracking-widest">Configurações</h2>
+                            <div className="bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm space-y-6">
+                                <div className="flex justify-between items-center text-sm font-bold text-gray-600">
+                                    <span>Dark Mode</span>
+                                    <span className="text-gray-300">Em breve</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm font-bold text-gray-600">
+                                    <span>Token Usage</span>
+                                    <span className="text-green-500">Ilimitado</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm font-bold text-gray-600">
+                                    <span>Assinatura</span>
+                                    {isPro ? (
+                                        <button
+                                            onClick={handleManageSubscription}
+                                            className="text-blue-600 hover:underline"
+                                            disabled={loading}
+                                        >
+                                            Gerenciar
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleUpgrade}
+                                            className="text-orange-500 hover:underline"
+                                            disabled={loading}
+                                        >
+                                            Assinar Pro
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="pt-4 border-t border-gray-100 flex flex-col gap-3">
+                                    <a href="/terms" target="_blank" className="text-xs font-bold text-blue-600 hover:underline">Termos de Uso</a>
+                                    <a href="/privacy" target="_blank" className="text-xs font-bold text-blue-600 hover:underline">Política de Privacidade</a>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* VIEW: PROFILE */}
+                    {currentView === 'profile' && (
+                        <div className="flex justify-center items-center h-full">
+                            <div className="bg-white p-12 rounded-[50px] shadow-2xl border border-gray-100 max-w-sm w-full text-center space-y-6">
+                                <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto flex items-center justify-center text-4xl">
+                                    {isPro ? '💎' : '👤'}
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-2xl font-black text-gray-900">
+                                        {isPro ? 'Membro Pro' : 'Membro'}
+                                    </h3>
+                                    <p className="text-sm font-bold text-blue-600">{userEmail || 'Acesso Limitado'}</p>
+                                </div>
+                                <div className="pt-2">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Precisa alterar seus dados?</p>
+                                    <a
+                                        href={`mailto:contato.melhoreai@gmail.com?subject=Alteração de Dados - ${userEmail}`}
+                                        className="text-xs font-black text-blue-600 hover:underline"
+                                    >
+                                        Falar com o Suporte →
+                                    </a>
+                                </div>
+                                <button
+                                    onClick={isPro ? handleManageSubscription : handleUpgrade}
+                                    disabled={loading}
+                                    className={`w-full py-4 font-bold border-2 rounded-2xl transition-all flex items-center justify-center gap-2 ${isPro ? 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-white hover:border-blue-100 hover:text-blue-600' : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'}`}
+                                >
+                                    <span>{isPro ? '💳' : '🚀'}</span>
+                                    <span>{isPro ? 'Gerenciar Assinatura' : 'Assinar Pro'}</span>
+                                </button>
+
+
+
+                                <button onClick={onLogout} className="w-full py-4 text-red-500 font-black border-2 border-red-50 rounded-2xl hover:bg-red-50 transition-colors">Sair da Conta</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </main>
+
+            <MobileNav activePage={currentView} onNavigate={(page) => setCurrentView(page)} />
+
+            {/* FEEDBACK MODAL */}
+            {showFeedbackModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => !sendingFeedback && setShowFeedbackModal(false)}></div>
+                    <div className="bg-white rounded-[40px] shadow-2xl border border-gray-100 w-full max-w-lg relative z-10 overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-8">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-2xl">💬</div>
+                                    <div>
+                                        <h2 className="text-xl font-black text-gray-900">Enviar Feedback</h2>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sua opinião é vital</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowFeedbackModal(false)} className="text-gray-300 hover:text-gray-600 transition-colors">✕</button>
+                            </div>
+
+                            {feedbackSuccess ? (
+                                <div className="py-12 text-center space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                                    <div className="text-5xl">✅</div>
+                                    <h3 className="text-xl font-black text-gray-900">Obrigado!</h3>
+                                    <p className="text-sm font-medium text-gray-500">Seu feedback foi recebido com sucesso.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sobre o que você quer falar?</p>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {["Sugestão", "Bug", "Elogio"].map((cat) => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => setFeedbackCategory(cat)}
+                                                    className={`py-3 rounded-2xl font-bold text-xs transition-all ${feedbackCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sua Mensagem</p>
+                                        <textarea
+                                            value={feedbackMessage}
+                                            onChange={(e) => setFeedbackMessage(e.target.value)}
+                                            placeholder="Descreva aqui sua sugestão, problema ou elogio..."
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-3xl p-5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none min-h-[150px] transition-all"
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={handleSendFeedback}
+                                        disabled={sendingFeedback || !feedbackMessage.trim()}
+                                        className="w-full py-5 bg-gray-900 text-white rounded-[24px] font-black text-sm hover:bg-blue-600 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:bg-gray-900 flex items-center justify-center gap-2"
+                                    >
+                                        {sendingFeedback ? 'Enviando...' : 'Enviar Agora'}
+                                        {!sendingFeedback && <span>🚀</span>}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
-        </div >
+
+            {/* NOTICE MODAL */}
+            {notice && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-md" onClick={() => setNotice(null)}></div>
+                    <div className="bg-white rounded-[40px] shadow-2xl border-4 border-blue-600 w-full max-w-md relative z-10 overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-10 text-center space-y-6">
+                            <div className="w-20 h-20 bg-blue-50 rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-inner">💡</div>
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-black text-gray-900">{notice.title}</h2>
+                                <p className="text-sm font-bold text-gray-500 leading-relaxed">{notice.message}</p>
+                            </div>
+                            <button
+                                onClick={() => setNotice(null)}
+                                className="w-full py-5 bg-blue-600 text-white rounded-[24px] font-black text-sm hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-100"
+                            >
+                                Entendi, vamos lá!
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 
