@@ -101,7 +101,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Sessão expirada ou usuário não autenticado." }, { status: 401 });
         }
 
-        /* 1.1 VERIFICAÇÃO DE ASSINATURA (DESATIVADO PARA TESTES FINAIS)
+        // 1.1 VERIFICAÇÃO DE ASSINATURA (AUTO-ATIVADA PARA PRODUÇÃO)
         const { data: profile } = await supabase
             .from('profiles')
             .select('is_pro')
@@ -118,24 +118,40 @@ export async function POST(req: Request) {
                 { status: 403 }
             );
         }
-        */
 
-        const { prompt, context } = await req.json();
+        if (!token) {
+            return NextResponse.json({ error: "Sessão expirada ou usuário não autenticado." }, { status: 401 });
+        }
+
+        // 1.2 VERIFICAÇÃO DE USO MENSAL (Limite de 1000)
+        const now = new Date();
+        const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const serverSupabase = createServerSupabase(token);
+
+        const { data: currentUsage } = await serverSupabase
+            .from('user_usage')
+            .select('prompt_count')
+            .eq('user_id', user.id)
+            .eq('month_year', monthYear)
+            .single();
+
+        if (currentUsage && currentUsage.prompt_count >= 1000) {
+            return NextResponse.json(
+                { error: "Muitas solicitações realizadas, aguarde um período ou entre em contato com o suporte." },
+                { status: 429 }
+            );
+        }
+
+        const { prompt, context, platform } = await req.json();
 
         // 2. TRAVA DE SEGURANÇA: Limite de Caracteres (Reduzido para 400)
         const MAX_CHARS = 400;
-        if (prompt.length > MAX_CHARS) {
+        if (prompt?.length > MAX_CHARS) {
             return NextResponse.json(
                 { error: `O prompt é muito longo (máximo de ${MAX_CHARS} caracteres). Por favor, reduza o texto.` },
                 { status: 400 }
             );
         }
-
-        // 1.5 - Criar cliente de servidor com a identidade do usuário
-        if (!token) {
-            return NextResponse.json({ error: "Sessão expirada ou usuário não autenticado." }, { status: 401 });
-        }
-        const serverSupabase = createServerSupabase(token);
 
 
         const apiKey = process.env.GEMINI_API_KEY;
@@ -158,6 +174,7 @@ TRANSFORME O COMANDO ABAIXO EM UM PROMPT MESTRE DE ALTO VALOR E IMPACTO PROFISSI
 
 ### DIRETRIZES TÉCNICAS (INTEGRAÇÃO):
 - Categoria/Intenção: ${context.intention}
+- Plataforma Alvo: ${platform?.toUpperCase() || 'GEMINI'} (Otimize especificamente para este modelo)
 - Persona Esperada: ${context.persona} (Expanda para nível Arquiteto/Sênior)
 - Tom de Voz Solicitado: ${context.tone}
 - Objetivo Final: ${context.goal}

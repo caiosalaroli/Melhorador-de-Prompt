@@ -54,8 +54,8 @@ export async function POST(req: Request) {
             mode: 'subscription',
             customer: profile?.stripe_customer_id || undefined,
             customer_email: profile?.stripe_customer_id ? undefined : user.email,
-            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?status=success`,
-            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?status=cancel`,
+            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/?status=success`,
+            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/?status=cancel`,
             metadata: {
                 userId: user.id,
             },

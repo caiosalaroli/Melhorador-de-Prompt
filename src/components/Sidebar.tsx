@@ -56,6 +56,15 @@ export default function Sidebar({ activePage, onNavigate, onLogout, onFeedback, 
                     <span className="text-lg group-hover:scale-110 transition-transform">💬</span>
                     Enviar Feedback
                 </button>
+                <a
+                    href="https://www.instagram.com/melhore.ai/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center gap-4 px-5 py-3 rounded-2xl font-bold text-xs text-pink-600 bg-pink-50 hover:bg-pink-100 transition-all duration-300 group no-underline"
+                >
+                    <span className="text-lg group-hover:scale-110 transition-transform">📸</span>
+                    Siga no Instagram
+                </a>
             </div>
 
             <button

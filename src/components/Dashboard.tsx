@@ -169,7 +169,7 @@ const MASTER_PROMPTS = [
 
     // SEÇÃO: IMAGEM & DESIGN
     { title: "Fotorealismo Hasselblad", icon: "📸", desc: "Comandos de estúdio para produtos e retratos épicos.", content: "Crie um prompt de imagem fotorrealista de [OBJETO/PESSOA]. Use especificações de lente Hasselblad 80mm, f/2.8, iluminação de estúdio 'three-point lighting' e fundo [COR/AMBIENTE]. Estilo: Fotografia comercial de alta qualidade." },
-    { title: "Concept Art Solarpunk", icon: "🌱", desc: "Arquitetura futurista onde natureza e tech coexistem.", content: "Gere um concept art no estilo Solarpunk de [LOCAL: ex: uma praça em SP]. Detalhes: muio verde, painéis solares orgânicos, arquitetura fluida de vidro e madeira. Horário: Pôr do sol com luz volumétrica." },
+    { title: "Concept Art Solarpunk", icon: "🌱", desc: "Arquitetura futurista onde natureza e tech coexistem.", content: "Gere um concept art no estilo Solarpunk de [LOCAL: ex: uma praça em SP]. Detalhes: muito verde, painéis solares orgânicos, arquitetura fluida de vidro e madeira. Horário: Pôr do sol com luz volumétrica." },
     { title: "Identidade Visual Minimalista", icon: "📐", desc: "Logotipos e mockups com estética premium Apple.", content: "Desenvolva um conceito de identidade visual minimalista para uma marca de [NICHO]. Foque em tipografia sans-serif, paleta de cores [CORES] e um ícone geométrico abstrato. Apresente em um mockup de fundo cinza neutro." },
 
     // SEÇÃO: VÍDEO & ROTEIRO
@@ -181,6 +181,14 @@ const MASTER_PROMPTS = [
     { title: "Arquiteto de Soluções Cloud", icon: "☁️", desc: "Desenho de infraestrutura escalável e segura.", content: "Desenhe uma arquitetura de nuvem para um SaaS de [TIPO DE APP]. A solução deve suportar [NÚMERO] de usuários e usar serviços da [AWS/GCP/AZURE]. Foque em alta disponibilidade e baixo custo." },
     { title: "Análise SWOT Lucrativa", icon: "📊", desc: "Estratégia de negócios baseada em dados e mercado.", content: "Realize uma análise SWOT para o negócio de [NOME/TIPO DE NEGÓCIO]. Após listar Forças, Fraquezas, Oportunidades e Ameaças, crie um plano de ação de 3 passos para dominar o nicho nos próximos 6 meses." },
     { title: "Prompt de 'Modo Entrevista'", icon: "🎙️", desc: "Faça a IA te entrevistar para extrair o melhor de você.", content: "Quero que você me entreviste para criar [O QUE VOCÊ QUER CRIAR]. Faça uma pergunta de cada vez, espere minha resposta e continue até ter informações suficientes para gerar o resultado perfeito." },
+
+    // NOVOS PROMPTS ADICIONADOS
+    { title: "Descrições Irresistíveis (AIDA)", icon: "🛒", desc: "Transforme produtos comuns em desejos imediatos usando psicologia de vendas.", content: "Atue como um Especialista em E-commerce e Psicologia de Vendas. Escreva uma descrição de produto para [PRODUTO]. Use o framework AIDA (Atenção, Interesse, Desejo, Ação). Foque nos benefícios emocionais e quebre as principais objeções de compra." },
+    { title: "Estrategista de Ads (High-CTR)", icon: "🚀", desc: "Crie variações de anúncios focadas em cliques e conversão de baixo custo.", content: "Atue como um Gestor de Tráfego e Especialista em Direct Response. Crie 3 variações de anúncios para [PRODUTO/SERVIÇO] focado no público [PÚBLICO]. Cada variação deve ter um gancho diferente, focando em: 1) Ganho imediato, 2) Medo de perda, 3) Curiosidade técnica." },
+    { title: "Cold Outreach B2B", icon: "📧", desc: "E-mails de prospecção fria que geram reuniões sem parecer spam.", content: "Atue como um SDR Sênior (Sales Development Representative). Escreva um cold email para prospectar a empresa [EMPRESA] oferecendo a solução de [SOLUÇÃO]. O e-mail deve ser curto, personalizado e terminar com uma 'Low-friction CTA' (chamada para ação de baixo compromisso)." },
+    { title: "Simplificador (Método Feynman)", icon: "🧠", desc: "Aprenda qualquer coisa complexa em minutos através de analogias simples.", content: "Atue como um Professor de Elite e Mentor de Aprendizado. Explique o conceito de [CONCEITO COMPLEXO] para uma pessoa de 10 anos de idade. Use analogias do dia a dia e evite jargões técnicos. O objetivo é que eu entenda a ESSÊNCIA do assunto rapidamente." },
+    { title: "Estrategista de Conteúdo Viral", icon: "📱", desc: "Planeje um mês de conteúdo estratégico focado em autoridade e crescimento.", content: "Atue como um Consultor de Marketing de Conteúdo para [NICHO]. Crie um calendário editorial de 30 dias focado no Instagram e TikTok. O plano deve equilibrar conteúdos de: Atração (Viral), Autoridade (Educação) e Conversão (Venda)." },
+    { title: "Gestão de Crise no Atendimento", icon: "🛡️", desc: "Transforme clientes furiosos em defensores da sua marca com psicologia.", content: "Atue como um Especialista em Customer Success e Resolução de Conflitos. Escreva uma resposta para um cliente que está extremamente insatisfeito com [PROBLEMA]. Use técnicas de validação emocional, assuma a responsabilidade e proponha uma solução que supere a expectativa dele." },
 ];
 
 const ACADEMY_LESSONS = [
@@ -404,7 +412,8 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                 },
                 body: JSON.stringify({
                     prompt,
-                    context
+                    context,
+                    platform: targetPlatform
                 }),
             });
 
@@ -426,7 +435,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
             savePrompt({
                 original: prompt,
                 improved: result,
-                model: 'gemini',
+                model: targetPlatform,
                 context
             });
 
@@ -456,8 +465,6 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                 return;
             }
 
-            console.log('Iniciando upgrade flow... Intent:', initialIntent);
-
             const { data: session } = await supabase.auth.getSession();
 
             const response = await fetch('/api/checkout-session', {
@@ -470,7 +477,6 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
             const data = await response.json();
 
             if (data.url) {
-                console.log('Redirecionando para:', data.url);
                 window.location.href = data.url;
             } else {
                 // Se o erro for por causa das chaves placeholder, mostrar aviso amigável
@@ -709,7 +715,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                 <p className="text-[8px] font-bold text-gray-600 uppercase tracking-[0.2em] opacity-40">Pagamento seguro via Stripe</p>
                             </div>
 
-                            {/* Botão de Simulação DEV - Apenas em Desenvolvimento */}
+
 
                         </div>
 
@@ -783,7 +789,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                             </div>
                         </header>
 
-                        <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-10">
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 relative z-10">
                             {/* VIEW: DASHBOARD */}
                             {currentView === 'dashboard' && (
                                 <div id="interview-mode-area" className="flex flex-col lg:flex-row gap-8 h-full max-w-[1600px] mx-auto">
@@ -1040,7 +1046,9 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                             {history.map((entry) => (
                                                 <div key={entry.id} className="bg-white p-6 rounded-2xl border border-gray-200 group relative">
                                                     <button onClick={() => deletePrompt(entry.id)} className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">🗑️</button>
-                                                    <p className="text-sm font-bold text-blue-600 mb-2">GEMINI</p>
+                                                    <p className={`text-sm font-bold mb-2 ${entry.model === 'gpt' ? 'text-green-600' : 'text-blue-600'}`}>
+                                                        {entry.model?.toUpperCase() || 'GEMINI'}
+                                                    </p>
                                                     <p className="text-sm text-gray-600 line-clamp-2">{entry.original}</p>
                                                 </div>
                                             ))}
@@ -1344,7 +1352,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                         <div className="pt-2">
                                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-2">Precisa alterar seus dados?</p>
                                             <a
-                                                href={`mailto:contato.melhoreai.@gmail.com?subject=Alteração de Dados - ${userEmail}`}
+                                                href={`mailto:contato.melhoreai@gmail.com?subject=Alteração de Dados - ${userEmail}`}
                                                 className="text-xs font-black text-blue-600 hover:underline"
                                             >
                                                 Falar com o Suporte →
@@ -1359,35 +1367,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                             <span>{isPro ? 'Gerenciar Assinatura' : 'Assinar Pro'}</span>
                                         </button>
 
-                                        {!isPro && process.env.NODE_ENV === 'development' && (
-                                            <button
-                                                onClick={async () => {
-                                                    if (!confirm('Isso vai simular que o Stripe avisou que você pagou. A conta virará Pro na hora. Continuar?')) return;
-                                                    try {
-                                                        setLoading(true);
-                                                        const { data: session } = await supabase.auth.getSession();
-                                                        const res = await fetch('/api/test-webhook-simulation', {
-                                                            method: 'POST',
-                                                            headers: { 'Authorization': `Bearer ${session.session?.access_token}` }
-                                                        });
-                                                        const data = await res.json();
-                                                        if (data.success) {
-                                                            alert('✅ Sucesso! O Webhook foi simulado.\n\nA página vai recarregar para atualizar seu status.');
-                                                            window.location.reload();
-                                                        } else {
-                                                            alert('Erro: ' + data.error);
-                                                        }
-                                                    } catch (e: any) {
-                                                        alert('Erro: ' + e.message);
-                                                    } finally {
-                                                        setLoading(false);
-                                                    }
-                                                }}
-                                                className="w-full py-2 text-xs font-bold text-gray-400 hover:text-blue-600 uppercase tracking-widest border border-dashed border-gray-200 rounded-xl hover:border-blue-300 transition-colors mt-2"
-                                            >
-                                                🛠️ [DEV] Simular Pagamento Aprovado
-                                            </button>
-                                        )}
+
 
                                         <button onClick={onLogout} className="w-full py-4 text-red-500 font-black border-2 border-red-50 rounded-2xl hover:bg-red-50 transition-colors">Sair da Conta</button>
                                     </div>

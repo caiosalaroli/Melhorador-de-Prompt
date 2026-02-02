@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Melhore.AI | Engenharia de Prompts de Elite",
     description: "Saia do básico. Gere prompts que extraem o máximo potencial da IA.",
-    url: "https://melhore.ai",
+    url: "https://www.melhoreai.com",
     siteName: "Melhore.AI",
     images: [
       {
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     description: "Transforme seus resultados com a melhor engenharia de prompts do Brasil.",
   },
   icons: {
-    icon: "/icon.png",
+    icon: "/favicon.png",
   }
 };
 
@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased overflow-x-hidden`}>
         {children}
         <Analytics />
       </body>
