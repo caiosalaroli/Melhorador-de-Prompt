@@ -279,7 +279,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
     const [typingComplete, setTypingComplete] = useState(false);
     const [isEditingImproved, setIsEditingImproved] = useState(false);
     const [userEmail, setUserEmail] = useState<string | null>(null);
-    const [isPro, setIsPro] = useState<boolean>(false);
+    const [isPro, setIsPro] = useState<boolean | null>(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [notice, setNotice] = useState<{ title: string, message: string } | null>(null);
     const [showPaywall, setShowPaywall] = useState(false);
@@ -300,7 +300,11 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
 
                 if (profile) {
                     setIsPro(profile.is_pro);
+                } else {
+                    setIsPro(false);
                 }
+            } else {
+                setIsPro(false);
             }
             setInitializing(false);
         };
@@ -333,12 +337,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
             // Limpar o parâmetro da URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
-
-        // Auto-upgrade if intended
-        if (initialIntent === 'upgrade') {
-            handleUpgrade();
-        }
-    }, [initialIntent]);
+    }, []);
 
     const handleOnboardingComplete = () => {
         localStorage.setItem('melhore_ai_onboarding_completed', 'true');
@@ -613,12 +612,12 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
     };
 
     // --- ESTADO DE CARREGAMENTO INICIAL (ZERO-JANK) ---
-    if (initializing) {
+    if (initializing || isPro === null) {
         return <LoadingScreen />;
     }
 
     // --- PAYWALL OBRIGATÓRIO (MODO PAID-ONLY) ---
-    if (!isPro) {
+    if (isPro === false) {
         return (
             <div className="min-h-screen bg-black flex flex-col md:flex-row font-sans">
                 {/* Lado Esquerdo - Visual */}

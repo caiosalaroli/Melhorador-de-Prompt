@@ -4,7 +4,7 @@ import React from 'react';
 
 export default function LoadingScreen() {
     return (
-        <div className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center space-y-8 animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center space-y-8 animate-in duration-500">
             {/* Logo Placeholder / Icon */}
             <div className="relative">
                 <div className="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-4xl shadow-2xl shadow-blue-200 animate-pulse">
