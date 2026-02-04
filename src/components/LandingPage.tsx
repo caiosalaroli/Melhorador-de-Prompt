@@ -130,7 +130,7 @@ const FAQS = [
     }
 ];
 
-function FadeInSection({ children }: { children: React.ReactNode }) {
+function FadeInSection({ children, className = "" }: { children: React.ReactNode, className?: string }) {
     const [isVisible, setVisible] = React.useState(false);
     const domRef = React.useRef<HTMLDivElement>(null);
 
@@ -139,10 +139,12 @@ function FadeInSection({ children }: { children: React.ReactNode }) {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     setVisible(true);
+                    // We don't unobserve if we want animations to replay or stay stable, 
+                    // but for performance unobserve is usually fine.
                     observer.unobserve(entry.target);
                 }
             });
-        });
+        }, { threshold: 0.1 });
 
         const currentRef = domRef.current;
         if (currentRef) {
@@ -158,7 +160,7 @@ function FadeInSection({ children }: { children: React.ReactNode }) {
 
     return (
         <div
-            className={`transition-all duration-1000 ease-out transform ${isVisible ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"}`}
+            className={`transition-all duration-1000 ease-out transform ${isVisible ? "translate-y-0 opacity-100 is-visible" : "translate-y-12 opacity-0"} group ${className}`}
             ref={domRef}
         >
             {children}
@@ -175,6 +177,37 @@ export default function LandingPage({ onStart }: LandingPageProps) {
     const [isOptimizing, setIsOptimizing] = React.useState(false);
     const [isOptimized, setIsOptimized] = React.useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+    const [showStickyCTA, setShowStickyCTA] = React.useState(false);
+
+    React.useEffect(() => {
+        const handleScroll = () => {
+            const scrollPosition = window.scrollY;
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const pricingSection = document.getElementById('precos');
+
+            // Check if pricing section is visible in viewport
+            let pricingIsVisible = false;
+            if (pricingSection) {
+                const rect = pricingSection.getBoundingClientRect();
+                // If top of pricing is above the 80% mark of the screen, we hide the sticky button
+                pricingIsVisible = rect.top < windowHeight * 0.8 && rect.bottom > 100;
+            }
+
+            // Show after 600px AND before reaching the footer AND NOT while pricing is visible
+            const isAtTop = scrollPosition <= 600;
+            const isNearBottom = (scrollPosition + windowHeight) >= (documentHeight - 300);
+
+            if (!isAtTop && !isNearBottom && !pricingIsVisible) {
+                setShowStickyCTA(true);
+            } else {
+                setShowStickyCTA(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
     const handleOptimize = () => {
         setIsOptimizing(true);
@@ -259,35 +292,60 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* Hero Section */}
             <FadeInSection>
-                <section className="relative pt-44 pb-16 px-6">
-                    <div className="container mx-auto text-center max-w-4xl">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest mb-10">
+                <section className="relative pt-32 md:pt-44 pb-12 md:pb-16 px-6 overflow-hidden">
+                    {/* Background Visual Highlighs */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full pointer-events-none">
+                        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-100/40 rounded-full blur-[120px] animate-pulse"></div>
+                    </div>
+
+                    <div className="container mx-auto text-center max-w-4xl relative z-10">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[11px] font-black uppercase tracking-widest mb-10 shadow-sm">
                             <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
                             Potencialize sua IA Agora (V2.3)
                         </div>
 
-                        <h1 className="text-5xl sm:text-6xl md:text-8xl font-black text-gray-900 leading-[0.9] tracking-tighter mb-8 md:mb-10">
-                            Potencialize seus <br className="hidden sm:block" />
-                            <span className="text-blue-600">Resultados com IA.</span>
+                        <h1 className="text-[42px] sm:text-7xl md:text-8xl lg:text-[100px] font-black text-gray-900 leading-[0.9] md:leading-[0.85] tracking-tighter mb-10 md:mb-14">
+                            Potencialize seus <br className="hidden md:block" />
+                            <span className="text-blue-600 block md:inline">Resultados com IA.</span>
                         </h1>
 
-                        <p className="text-lg md:text-2xl text-gray-500 max-w-2xl mx-auto leading-relaxed mb-10 md:mb-14 font-medium tracking-normal px-4">
+                        <p className="text-[12px] md:text-2xl text-gray-500 max-w-2xl mx-auto leading-relaxed mb-10 md:mb-14 font-medium tracking-normal px-4">
                             Saia do básico. Nossa tecnologia gera comandos precisos que extraem o máximo de inteligência do ChatGPT e Gemini.
                         </p>
 
-                        <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
-                            <button
-                                onClick={() => onStart()}
-                                className="w-full sm:w-auto bg-gray-900 text-white px-12 py-5 rounded-2xl text-lg font-black hover:bg-blue-600 shadow-2xl shadow-gray-200 transition-all hover:scale-105"
-                            >
-                                Começar a Criar
-                            </button>
-                            <button
-                                onClick={() => scrollToSection('funcionalidades')}
-                                className="w-full sm:w-auto px-12 py-5 rounded-2xl text-lg font-black text-gray-900 bg-gray-50 border border-gray-200 hover:bg-white transition-all flex items-center justify-center gap-3"
-                            >
-                                Ver Demonstração <span className="text-xl">→</span>
-                            </button>
+                        <div className="flex flex-col items-center gap-8 mb-16">
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                                <button
+                                    onClick={() => onStart()}
+                                    className="px-10 md:px-10 py-5 md:py-5 bg-gray-900 text-white rounded-2xl font-black text-lg md:text-lg shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-blue-600 hover:scale-105 transition-all active:scale-95 flex items-center justify-center group"
+                                >
+                                    Começar a Criar
+                                </button>
+                                <button
+                                    onClick={() => scrollToSection('funcionalidades')}
+                                    className="px-10 md:px-10 py-5 md:py-5 bg-white text-gray-900 border-2 border-gray-100 rounded-2xl font-black text-lg md:text-lg hover:border-blue-200 transition-all flex items-center gap-3 group"
+                                >
+                                    Ver Demonstração
+                                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                                </button>
+                            </div>
+
+                            {/* Social Proof Badge */}
+                            <div className="flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+                                <div className="flex -space-x-3">
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <div key={i} className={`w-10 h-10 rounded-full border-4 border-white bg-gray-200 flex items-center justify-center overflow-hidden`}>
+                                            <img src={`https://i.pravatar.cc/100?u=${i}`} alt="user" className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                    <div className="w-10 h-10 rounded-full border-4 border-white bg-blue-600 flex items-center justify-center text-[9px] font-black text-white">
+                                        +500
+                                    </div>
+                                </div>
+                                <p className="text-sm font-bold text-gray-400">
+                                    <span className="text-gray-900">500+ profissionais</span> já estão otimizando com Melhore.AI
+                                </p>
+                            </div>
                         </div>
                     </div>
 
@@ -306,33 +364,37 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* Step-by-Step "How it works" section */}
             <FadeInSection>
-                <section className="pt-16 pb-24 bg-white relative overflow-hidden">
+                <section className="pt-8 md:pt-16 pb-16 md:pb-24 bg-white relative overflow-hidden">
                     <div className="container mx-auto px-6 max-w-6xl">
                         <div className="text-center mb-16">
                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-[10px] font-black uppercase tracking-widest mb-6">
                                 <span className="text-xs">✓</span> EM 3 PASSOS
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tighter">Entenda como funciona</h2>
-                            <p className="text-gray-500 font-bold text-lg max-w-2xl mx-auto">
+                            <h2 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tighter">Entenda como funciona</h2>
+                            <p className="text-gray-500 font-bold text-[12px] md:text-base max-w-2xl mx-auto">
                                 Veja como é simples transformar suas ideias em prompts de elite
                             </p>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-8">
+                        <div className="flex overflow-x-auto pb-8 -mx-6 px-6 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0 md:mx-0 md:px-0 gap-4 md:gap-8 scrollbar-hide">
                             {[
                                 { step: "1", icon: "✍️", title: "Cole sua ideia", desc: "Digite o seu prompt básico ou apenas descreva o que você precisa criar na nossa plataforma." },
                                 { step: "2", icon: "⚙️", title: "IA Reconstrói", desc: "Nossa engenharia avançada aplica frameworks de elite para otimizar cada detalhe do seu comando." },
                                 { step: "3", icon: "🚀", title: "Copie o Sucesso", desc: "Em segundos, você tem um prompt de alta performance pronto para colar no ChatGPT ou Gemini." }
                             ].map((p, i) => (
-                                <div key={i} className="bg-white p-10 rounded-[40px] border border-gray-100 shadow-xl shadow-gray-50 relative group hover:border-blue-200 transition-all duration-500">
-                                    <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-2xl font-black mb-8 shadow-lg shadow-blue-100 group-hover:scale-110 transition-transform">
+                                <div
+                                    key={i}
+                                    className="flex-shrink-0 w-[85vw] md:w-auto snap-center bg-white p-10 rounded-[40px] border border-gray-100 shadow-xl shadow-gray-50 relative group/card hover:border-blue-200 transition-all duration-500 opacity-0 group-[.is-visible]:animate-in group-[.is-visible]:fade-in group-[.is-visible]:slide-in-from-right-8 group-[.is-visible]:opacity-100 fill-mode-backwards"
+                                    style={{ animationDelay: `${i * 150}ms` }}
+                                >
+                                    <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-2xl font-black mb-8 shadow-lg shadow-blue-100 group-hover/card:scale-125 transition-transform duration-500 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]">
                                         {p.step}
                                     </div>
-                                    <div className="absolute top-10 right-10 w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-xl group-hover:rotate-12 transition-transform">
+                                    <div className="absolute top-10 right-10 w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-xl group-hover/card:rotate-12 transition-transform">
                                         {p.icon}
                                     </div>
                                     <h3 className="text-xl font-black text-gray-900 mb-4">{p.title}</h3>
-                                    <p className="text-sm font-medium text-gray-500 leading-relaxed">{p.desc}</p>
+                                    <p className="text-[10px] md:text-sm font-medium text-gray-500 leading-relaxed">{p.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -342,24 +404,24 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* Before & After Interactive Showcase */}
             <FadeInSection>
-                <section id="funcionalidades" className="bg-gray-50/50 py-32 border-y border-gray-100 relative overflow-hidden">
+                <section id="funcionalidades" className="bg-gray-50/50 py-16 md:py-32 border-y border-gray-100 relative overflow-hidden">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-50/50 rounded-full blur-[120px] pointer-events-none"></div>
 
                     <div className="container mx-auto px-6 max-w-6xl relative z-10">
                         <div className="text-center mb-12">
-                            <h2 className="text-5xl font-black text-gray-900 mb-4 tracking-tighter">O Impacto Real na sua Resposta</h2>
-                            <p className="text-gray-500 font-bold text-lg max-w-2xl mx-auto">
+                            <h2 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tighter">O Impacto Real na sua Resposta</h2>
+                            <p className="text-gray-500 font-bold text-[12px] md:text-base max-w-2xl mx-auto">
                                 Transformamos comandos básicos em estratégias que forçam a IA ao seu máximo potencial.
                             </p>
                         </div>
 
                         {/* Scenario Selector */}
-                        <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-10 md:mb-16">
+                        <div className="flex overflow-x-auto pb-4 -mx-6 px-6 snap-x snap-mandatory md:flex-wrap md:justify-center md:overflow-visible md:pb-0 md:mx-0 md:px-0 gap-2 md:gap-3 mb-10 md:mb-16 scrollbar-hide">
                             {SCENARIOS.map((s, idx) => (
                                 <button
                                     key={s.id}
                                     onClick={() => handleScenarioChange(idx)}
-                                    className={`px-4 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 md:gap-3 ${activeScenario === idx ? 'bg-blue-600 text-white shadow-2xl shadow-blue-200 scale-105 border-transparent' : 'bg-white text-gray-400 border border-gray-100 hover:border-blue-200 hover:text-blue-600 hover:bg-blue-50/30'}`}
+                                    className={`flex-shrink-0 snap-center px-6 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest transition-all duration-300 flex items-center gap-2 md:gap-3 ${activeScenario === idx ? 'bg-blue-600 text-white shadow-2xl shadow-blue-200 scale-105 border-transparent' : 'bg-white text-gray-400 border border-gray-100 hover:border-blue-200 hover:text-blue-600 hover:bg-blue-50/30'}`}
                                 >
                                     <span className={`text-lg md:text-xl transition-transform duration-300 ${activeScenario === idx ? 'scale-125' : ''}`}>{s.icon}</span> {s.label}
                                 </button>
@@ -468,20 +530,24 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* Library Section */}
             <FadeInSection>
-                <section id="biblioteca" className="py-32 bg-white">
+                <section id="biblioteca" className="py-16 md:py-32 bg-white">
                     <div className="container mx-auto px-6 max-w-6xl">
                         <div className="mb-20 text-center">
-                            <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Biblioteca Premium</h2>
-                            <p className="text-gray-500 font-bold mt-4 tracking-normal text-lg">Acesso instantâneo aos prompts mais lucrativos do mercado.</p>
+                            <h2 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tighter">Biblioteca Premium</h2>
+                            <p className="text-gray-500 font-bold mt-4 tracking-normal text-[12px] md:text-base">Acesso instantâneo aos prompts mais lucrativos do mercado.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 text-center">
+                        <div className="flex overflow-x-auto pb-8 -mx-6 px-6 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 md:overflow-visible md:pb-0 md:mx-0 md:px-0 gap-4 md:gap-8 scrollbar-hide">
                             {[
                                 { title: "Estrategista Digital", cat: "Marketing", icon: "📈", users: "1.4k+", tag: "Alta Conversão", preview: "Atue como um CMO sênior especializado em Growth Hacking. Analise os seguintes KPIs de tráfego pago e identifique gargalos no funil de vendas..." },
                                 { title: "Analista de Dados IA", cat: "Business", icon: "🧬", users: "890+", tag: "Foco em ROI", preview: "Você é um Analista de Dados sênior. Transforme esse conjunto de dados brutos em um relatório executivo destacando as 3 principais oportunidades..." },
                                 { title: "Roteirista de Alta Retenção", cat: "Creator", icon: "🎬", users: "2.1k+", tag: "Viralização", preview: "Crie um roteiro de 60 segundos usando o framework Hook-Value-CTA. O gancho inicial deve atacar uma dor latente do público-alvo nos primeiros 3 segundos..." }
                             ].map((item, i) => (
-                                <div key={i} className={`group p-8 md:p-10 rounded-[32px] md:rounded-[48px] border border-gray-100 bg-white hover:border-blue-600 hover:shadow-2xl transition-all duration-500 cursor-pointer relative flex flex-col ${i === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
+                                <div
+                                    key={i}
+                                    className={`flex-shrink-0 w-[85vw] md:w-auto snap-center group/card p-8 md:p-10 rounded-[32px] md:rounded-[48px] border border-gray-100 bg-white hover:border-blue-600 hover:shadow-2xl transition-all duration-500 cursor-pointer relative flex flex-col opacity-0 group-[.is-visible]:animate-in group-[.is-visible]:fade-in group-[.is-visible]:slide-in-from-right-8 group-[.is-visible]:opacity-100 fill-mode-backwards ${i === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}`}
+                                    style={{ animationDelay: `${i * 150}ms` }}
+                                >
                                     <div className="absolute top-6 right-8">
                                         <span className="px-3 py-1 bg-blue-50 text-blue-600 text-[9px] font-black rounded-full uppercase tracking-widest">{item.tag}</span>
                                     </div>
@@ -496,12 +562,12 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                                             <p className="text-[11px] text-gray-600 leading-relaxed text-left italic">{item.preview}</p>
                                         </div>
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-12 h-12 bg-white shadow-xl rounded-full flex items-center justify-center border border-gray-100 group-hover:scale-110 transition-transform">
+                                            <div className="w-12 h-12 bg-white shadow-xl rounded-full flex items-center justify-center border border-gray-100 group-hover/card:scale-110 transition-transform">
                                                 <span className="text-xl">🔒</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <button onClick={() => onStart()} className="mt-auto mx-auto w-fit px-12 py-4 bg-gray-50 text-gray-900 rounded-2xl font-black group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm block">Desbloquear Prompt</button>
+                                    <button onClick={() => onStart()} className="mt-auto mx-auto w-fit px-12 py-4 bg-gray-50 text-gray-900 rounded-2xl font-black group-hover/card:bg-blue-600 group-hover/card:text-white transition-all shadow-sm block">Desbloquear Prompt</button>
                                 </div>
                             ))}
                         </div>
@@ -515,20 +581,24 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* Testimonials Section */}
             <FadeInSection>
-                <section id="depoimentos" className="py-32 bg-gray-50/50 relative overflow-hidden">
+                <section id="depoimentos" className="py-16 md:py-32 bg-gray-50/50 relative overflow-hidden">
                     <div className="container mx-auto px-6 max-w-6xl">
                         <div className="text-center mb-16">
-                            <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Quem usa, aprova</h2>
-                            <p className="text-gray-500 font-bold text-lg">Junte-se a centenas de profissionais que elevaram o nível do seu trabalho.</p>
+                            <h2 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tighter">Quem usa, aprova</h2>
+                            <p className="text-gray-500 font-bold text-[12px] md:text-base">Junte-se a centenas de profissionais que elevaram o nível do seu trabalho.</p>
                         </div>
 
-                        <div className="grid md:grid-cols-3 gap-8">
+                        <div className="flex overflow-x-auto pb-8 -mx-6 px-6 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:pb-0 md:mx-0 md:px-0 gap-4 md:gap-8 scrollbar-hide">
                             {[
                                 { name: "Ricardo Silva", role: "Copywriter Sênior", location: "São Paulo, SP", text: "O Melhore.AI mudou completamente meu workflow. O que eu levava 30 minutos pra estruturar, agora faço em segundos com uma qualidade absurda.", avatar: "👨‍💻" },
                                 { name: "Ana Beatriz", role: "Social Media Manager", location: "Rio de Janeiro, RJ", text: "A biblioteca de prompts é surreal. Eu usei o de roteirista e meu primeiro vídeo bateu 50k views em 2 dias. Vale cada centavo!", avatar: "👩‍💼" },
                                 { name: "Lucas Mendes", role: "Fundador de Agência", location: "Curitiba, PR", text: "O modo entrevista é o grande diferencial. Ele extrai informações que eu nem sabia que precisava passar para a IA. Resultados de elite.", avatar: "🚀" }
                             ].map((t, i) => (
-                                <div key={i} className="bg-white p-8 md:p-10 rounded-[32px] md:rounded-[40px] border border-gray-100 shadow-xl shadow-gray-50 hover:-translate-y-2 transition-all duration-500">
+                                <div
+                                    key={i}
+                                    className="flex-shrink-0 w-[85vw] md:w-auto snap-center bg-white p-8 md:p-10 rounded-[32px] md:rounded-[40px] border border-gray-100 shadow-xl shadow-gray-50 hover:-translate-y-2 transition-all duration-500 opacity-0 group-[.is-visible]:animate-in group-[.is-visible]:fade-in group-[.is-visible]:slide-in-from-right-8 group-[.is-visible]:opacity-100 fill-mode-backwards"
+                                    style={{ animationDelay: `${i * 150}ms` }}
+                                >
                                     <div className="flex items-center gap-4 mb-6">
                                         <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-2xl border border-blue-100">{t.avatar}</div>
                                         <div className="text-left">
@@ -539,7 +609,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-gray-500 text-sm leading-relaxed italic text-left">&quot;{t.text}&quot;</p>
+                                    <p className="text-gray-500 text-[10px] md:text-sm leading-relaxed italic text-left">&quot;{t.text}&quot;</p>
                                     <div className="mt-6 flex text-yellow-400 gap-1">
                                         {[1, 2, 3, 4, 5].map(s => <span key={s}>★</span>)}
                                     </div>
@@ -552,11 +622,11 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* Pricing Section */}
             <FadeInSection>
-                <section id="precos" className="py-32 bg-gray-50/50 border-t border-gray-100">
+                <section id="precos" className="py-16 md:py-32 bg-gray-50/50 border-t border-gray-100">
                     <div className="container mx-auto px-6 max-w-6xl">
                         <div className="text-center mb-20">
-                            <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Escolha seu Acesso Profissional</h2>
-                            <p className="text-gray-500 font-bold text-lg">Planos desenhados para quem leva a IA a sério.</p>
+                            <h2 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tighter">Escolha seu Acesso Profissional</h2>
+                            <p className="text-gray-500 font-bold text-[12px] md:text-base">Planos desenhados para quem leva a IA a sério.</p>
                         </div>
 
                         <div className="max-w-md mx-auto">
@@ -601,11 +671,11 @@ export default function LandingPage({ onStart }: LandingPageProps) {
 
             {/* FAQ Section */}
             <FadeInSection>
-                <section className="py-32 bg-white">
+                <section className="py-16 md:py-32 bg-white">
                     <div className="container mx-auto px-6 max-w-3xl">
                         <div className="text-center mb-16">
-                            <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">Dúvidas Frequentes</h2>
-                            <p className="text-gray-500 font-bold text-lg">Tudo o que você precisa saber antes de começar.</p>
+                            <h2 className="text-4xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4 tracking-tighter">Dúvidas Frequentes</h2>
+                            <p className="text-gray-500 font-bold text-[12px] md:text-base">Tudo o que você precisa saber antes de começar.</p>
                         </div>
                         <div className="space-y-4">
                             {FAQS.map((faq, idx) => (
@@ -626,35 +696,35 @@ export default function LandingPage({ onStart }: LandingPageProps) {
             </FadeInSection>
 
             {/* Footer */}
-            <footer className="py-20 bg-gray-900 text-white border-t border-gray-800">
+            <footer className="py-12 md:py-20 bg-gray-900 text-white border-t border-gray-800">
                 <div className="container mx-auto px-6">
-                    <div className="grid md:grid-cols-4 gap-12 mb-16">
-                        <div className="col-span-1 md:col-span-1">
-                            <div className="flex items-center gap-3 mb-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-8 md:mb-16">
+                        <div className="col-span-2 md:col-span-1">
+                            <div className="flex items-center gap-3 mb-4 md:mb-6">
                                 <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-blue-900/50">M</div>
                                 <span className="font-extrabold text-2xl tracking-tighter">Melhore.AI</span>
                             </div>
                             <p className="text-gray-400 text-sm leading-relaxed font-medium">A primeira plataforma brasileira focada exclusivamente em engenharia de prompt para profissionais de elite.</p>
                         </div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-6">Produto</h4>
-                            <ul className="space-y-4 text-sm font-bold">
+                        <div className="col-span-1">
+                            <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-4 md:mb-6">Produto</h4>
+                            <ul className="space-y-3 md:space-y-4 text-sm font-bold">
                                 <li><button onClick={() => scrollToSection('funcionalidades')} className="text-gray-300 hover:text-blue-500 transition-colors">Funcionalidades</button></li>
                                 <li><button onClick={() => scrollToSection('biblioteca')} className="text-gray-300 hover:text-blue-500 transition-colors">Biblioteca</button></li>
                                 <li><button onClick={() => scrollToSection('precos')} className="text-gray-300 hover:text-blue-500 transition-colors">Preços</button></li>
                             </ul>
                         </div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-6">Legal</h4>
-                            <ul className="space-y-4 text-sm font-bold">
+                        <div className="col-span-1">
+                            <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-4 md:mb-6">Legal</h4>
+                            <ul className="space-y-3 md:space-y-4 text-sm font-bold">
                                 <li><Link href="/terms" className="text-gray-300 hover:text-blue-500 transition-colors">Termos de Uso</Link></li>
                                 <li><Link href="/privacy" className="text-gray-300 hover:text-blue-500 transition-colors">Política de Privacidade</Link></li>
-                                <li><a href="#" className="text-gray-300 hover:text-blue-500 transition-colors">Licença de Conteúdo</a></li>
+                                <li><a href="#" className="text-gray-300 hover:text-blue-500 transition-colors">Licença</a></li>
                             </ul>
                         </div>
-                        <div>
-                            <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-6">Contato</h4>
-                            <ul className="space-y-4 text-sm font-bold">
+                        <div className="col-span-2 md:col-span-1">
+                            <h4 className="font-black text-sm uppercase tracking-widest text-gray-500 mb-4 md:mb-6">Contato</h4>
+                            <ul className="space-y-3 md:space-y-4 text-sm font-bold">
                                 <li><a href="mailto:contato.melhoreai@gmail.com" className="text-gray-300 hover:text-blue-500 transition-colors">contato.melhoreai@gmail.com</a></li>
                                 <li className="text-gray-500">São Paulo, SP - Brasil</li>
                             </ul>
@@ -676,6 +746,16 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                     </div>
                 </div>
             </footer>
+
+            {/* Sticky Mobile CTA */}
+            <div className={`lg:hidden fixed bottom-6 left-0 w-full px-6 z-[100] transition-all duration-500 transform ${showStickyCTA ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+                <button
+                    onClick={() => scrollToSection('precos')}
+                    className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-base shadow-[0_20px_40px_rgba(59,130,246,0.4)] border-2 border-white/20 flex items-center justify-center gap-3 active:scale-95 transition-transform"
+                >
+                    🚀 Ver Planos e Começar
+                </button>
+            </div>
         </div>
     );
 }

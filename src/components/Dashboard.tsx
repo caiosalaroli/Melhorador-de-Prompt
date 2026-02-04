@@ -845,34 +845,51 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                     <div className="mt-12 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
 
 
-                                        <div className="flex justify-between items-end px-1">
-                                            <div className="flex items-center gap-4">
+                                        <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-end px-1">
+                                            <div className="flex items-center gap-4 w-full md:w-auto border-b md:border-none border-gray-100 pb-4 md:pb-0">
                                                 <button onClick={() => setViewMode('preview')} className={`text-[10px] font-black uppercase tracking-widest transition-colors ${viewMode === 'preview' ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>Normal</button>
                                                 <div className="w-px h-3 bg-gray-200"></div>
                                                 <button onClick={() => setViewMode('split')} className={`text-[10px] font-black uppercase tracking-widest transition-colors ${viewMode === 'split' ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>Lado a Lado</button>
                                             </div>
                                             {stats && (
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] text-green-600 font-bold italic bg-green-50 px-2 py-1 rounded-full border border-green-100 flex items-center gap-1.5">
+                                                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                                                    <span className="text-[10px] text-green-600 font-bold italic bg-green-50 px-2 py-1 rounded-full border border-green-100 flex items-center gap-1.5 whitespace-nowrap">
                                                         <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
                                                         {stats.economy > 5
-                                                            ? `Economia de ${stats.economy}% em tokens`
-                                                            : 'Estrutura Premium Otimizada'}
+                                                            ? `Economia ${stats.economy}%`
+                                                            : 'Otimizado'}
                                                     </span>
+                                                    <div className="h-4 w-px bg-gray-200 hidden md:block"></div>
                                                     <button
                                                         onClick={() => setShowRaioX(!showRaioX)}
-                                                        className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${showRaioX ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'}`}
+                                                        className={`flex-1 md:flex-none text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all whitespace-nowrap ${showRaioX ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-500'}`}
                                                     >
-                                                        {showRaioX ? '✕ Fechar Raio-X' : '🔍 Ver Raio-X'}
+                                                        {showRaioX ? '✕ Raio-X' : '🔍 Raio-X'}
                                                     </button>
                                                     <button
                                                         onClick={() => setIsEditingImproved(!isEditingImproved)}
-                                                        className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all ${isEditingImproved ? 'bg-orange-600 border-orange-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500'}`}
+                                                        className={`flex-1 md:flex-none text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all whitespace-nowrap ${isEditingImproved ? 'bg-orange-600 border-orange-600 text-white' : 'bg-white border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-500'}`}
                                                     >
-                                                        {isEditingImproved ? '💾 Salvar Mudanças' : '✏️ Editar Prompt'}
+                                                        {isEditingImproved ? '💾 Salvar' : '✏️ Editar'}
                                                     </button>
                                                 </div>
                                             )}
+                                        </div>
+
+                                        {/* Action Buttons: High Visibility Row (Top) */}
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                                            <button
+                                                onClick={handleOpenExternal}
+                                                className="w-full md:w-auto justify-center px-4 py-3 bg-gray-50 border border-gray-200 text-gray-700 text-xs font-black uppercase tracking-wide rounded-xl hover:bg-white hover:border-gray-300 hover:shadow-md transition-all flex items-center gap-2"
+                                            >
+                                                ↗ Abrir no {targetPlatform === 'gpt' ? 'ChatGPT' : 'Gemini'}
+                                            </button>
+                                            <button
+                                                onClick={handleCopy}
+                                                className={`w-full md:w-auto justify-center px-5 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 border font-black text-xs uppercase tracking-wide transform active:scale-95 ${copied ? 'bg-green-500 border-green-600 text-white scale-105 shadow-green-200' : 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 hover:shadow-xl'}`}
+                                            >
+                                                {copied ? '✅' : '📋 Copiar'}
+                                            </button>
                                         </div>
 
                                         {showRaioX && stats?.reasoning && (
@@ -891,7 +908,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                             </div>
                                         )}
 
-                                        <div className={`w-full bg-white border border-gray-200 rounded-[32px] p-6 md:p-8 pb-20 text-gray-900 leading-relaxed font-medium shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all duration-300 ${viewMode === 'split' ? 'max-w-none' : 'text-base md:text-lg'}`}>
+                                        <div className={`w-full bg-white border border-gray-200 rounded-[32px] p-6 md:p-8 text-gray-900 leading-relaxed font-medium shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-blue-500/5 hover:border-blue-200 transition-all duration-300 relative ${viewMode === 'split' ? 'max-w-none' : 'text-base md:text-lg'}`}>
                                             {isEditingImproved ? (
                                                 <div className="animate-in fade-in duration-300 h-full min-h-[400px]">
                                                     <textarea
@@ -918,21 +935,6 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                                                     </div>
                                                 </div>
                                             )}
-                                        </div>
-
-                                        <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                                            <button
-                                                onClick={handleOpenExternal}
-                                                className="px-4 py-2 bg-gray-50 border border-gray-200 text-gray-700 text-xs font-black uppercase tracking-wide rounded-xl hover:bg-white hover:border-gray-300 hover:shadow-md transition-all flex items-center gap-2"
-                                            >
-                                                ↗ Abrir no {targetPlatform === 'gpt' ? 'ChatGPT' : 'Gemini'}
-                                            </button>
-                                            <button
-                                                onClick={handleCopy}
-                                                className={`px-5 py-2 rounded-xl shadow-lg transition-all flex items-center gap-2 border font-black text-xs uppercase tracking-wide transform active:scale-95 ${copied ? 'bg-green-500 border-green-600 text-white scale-105 shadow-green-200' : 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 hover:shadow-xl'}`}
-                                            >
-                                                {copied ? '✅ Copiado' : '📋 Copiar'}
-                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -1056,26 +1058,26 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                     {/* VIEW: PROJECTS */}
                     {currentView === 'projects' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-between items-center">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                 <div>
                                     <h2 className="text-3xl font-black text-gray-900">
                                         {openProjectId ? (
                                             <button onClick={() => setOpenProjectId(null)} className="flex items-center gap-3 hover:text-blue-600 transition-colors">
                                                 <span>←</span>
-                                                <span>{projects.find(p => p.id === openProjectId)?.name}</span>
+                                                <span className="truncate max-w-[200px]">{projects.find(p => p.id === openProjectId)?.name}</span>
                                             </button>
                                         ) : (
                                             'Meus Projetos 📁'
                                         )}
                                     </h2>
-                                    <p className="text-gray-500 mt-1">
+                                    <p className="text-gray-500 mt-1 text-sm md:text-base">
                                         {openProjectId ? 'Visualize todos os prompts salvos neste projeto.' : 'Organize seus prompts por campanhas ou clientes.'}
                                     </p>
                                 </div>
                                 {!openProjectId && (
                                     <button
                                         onClick={() => setShowNewProjectModal(true)}
-                                        className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all"
+                                        className="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-blue-100 hover:bg-blue-700 hover:-translate-y-0.5 transition-all text-center"
                                     >
                                         + Novo Projeto
                                     </button>
@@ -1143,7 +1145,7 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
 
                             {/* New Project Modal */}
                             {showNewProjectModal && (
-                                <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+                                <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 pb-24 md:p-4">
                                     <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setShowNewProjectModal(false)}></div>
                                     <div className="bg-white rounded-[40px] p-10 max-w-md w-full relative z-10 shadow-2xl border border-white animate-in zoom-in duration-300">
                                         <h3 className="text-2xl font-black text-gray-900 mb-6">Criar Novo Projeto</h3>
@@ -1226,15 +1228,15 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
 
                             <div className="bg-gray-900 rounded-[40px] p-8 text-white relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:bg-blue-500/30 transition-all duration-700"></div>
-                                <div className="relative z-10 grid grid-cols-2 gap-12 items-center">
-                                    <div className="space-y-4">
+                                <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+                                    <div className="space-y-4 text-center md:text-left">
                                         <h3 className="text-2xl font-black italic">Dica de Ouro: Few-Shot Prompting</h3>
                                         <p className="text-gray-300 text-sm leading-relaxed">
-                                            Não apenas explique, mostre! Forneça 2 ou 3 exemplos do que você espera antes de pedir o resultado final. A IA aprende o padrão instantaneamente e entrega algo muito mais preciso.
+                                            Não apenas explique, mostre! Forneça 2 ou 3 exemplos do que você espera antes de pedir o resultado final. A IA aprende o padrão instantaneamente.
                                         </p>
                                         <button
                                             onClick={() => setShowAcademyModal(true)}
-                                            className="px-6 py-2 bg-white text-gray-900 rounded-full font-black text-xs hover:scale-105 transition-transform active:scale-95"
+                                            className="w-full md:w-auto px-6 py-3 bg-white text-gray-900 rounded-full font-black text-xs hover:scale-105 transition-transform active:scale-95"
                                         >
                                             Ver Exemplo Prático
                                         </button>
