@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { manageSubscriptionStatus } from '@/lib/subscription';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_build_placeholder', {
     apiVersion: '2024-12-18.acacia' as any,
@@ -25,13 +26,30 @@ export async function POST(req: Request) {
         switch (event.type) {
             case 'checkout.session.completed': {
                 const session = event.data.object as Stripe.Checkout.Session;
-                const userId = session.metadata?.userId;
+                let userId = session.metadata?.userId;
                 const customerId = session.customer as string;
                 const customerEmail = session.customer_details?.email || session.customer_email || undefined;
+
+                // Fallback logic: If metadata.userId is missing (e.g. invalid flow/direct link), try to find user by email
+                if (!userId && customerEmail) {
+                    console.log(`[Webhook] UserID ausente no metadata. Tentando recuperar pelo email: ${customerEmail}`);
+                    const { data: profile } = await supabaseAdmin
+                        .from('profiles')
+                        .select('user_id')
+                        .eq('email', customerEmail)
+                        .single();
+
+                    if (profile) {
+                        userId = profile.user_id;
+                        console.log(`[Webhook] Usuário encontrado via email: ${userId}`);
+                    }
+                }
 
                 if (userId) {
                     const { error } = await manageSubscriptionStatus(userId, customerId, true, customerEmail as string);
                     if (error) console.error('Erro ao ativar PRO:', error);
+                } else {
+                    console.error('Erro Crítico: Não foi possível identificar o usuário para ativar o PRO. Session:', session.id);
                 }
                 break;
             }

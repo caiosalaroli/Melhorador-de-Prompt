@@ -42,3 +42,6 @@ lint_report.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Marketing Assets (Local Only)
+marketing_kit/
