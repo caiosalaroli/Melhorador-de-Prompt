@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
+import FacebookPixel from "@/components/FacebookPixel";
 import "./globals.css";
 
 const inter = Inter({
@@ -47,6 +49,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${inter.variable} font-sans antialiased overflow-x-hidden`}>
+        <Suspense fallback={null}>
+          <FacebookPixel />
+        </Suspense>
         {children}
         <Analytics />
       </body>

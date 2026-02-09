@@ -47,7 +47,43 @@ export async function POST(req: Request) {
 
                 if (userId) {
                     const { error } = await manageSubscriptionStatus(userId, customerId, true, customerEmail as string);
-                    if (error) console.error('Erro ao ativar PRO:', error);
+                    if (error) {
+                        console.error('Erro ao ativar PRO:', error);
+                    } else {
+                        // Meta CAPI: Send Purchase Event
+                        try {
+                            const { sendCAPIEvent } = await import('@/lib/capi');
+                            const amount = session.amount_total ? session.amount_total / 100 : 29.90; // Default or actual
+                            const currency = session.currency?.toUpperCase() || 'BRL';
+                            const eventId = `purchase_${session.id}`; // Deduplication ID
+
+                            // Split name if available
+                            const fullName = session.customer_details?.name || '';
+                            const [firstName, ...lastNameParts] = fullName.split(' ');
+                            const lastName = lastNameParts.join(' ');
+
+                            await sendCAPIEvent(
+                                'Purchase',
+                                {
+                                    email: customerEmail,
+                                    firstName: firstName,
+                                    lastName: lastName,
+                                    fbp: session.metadata?.fbp, // Se tivermos passado isso no checkout
+                                    fbc: session.metadata?.fbc  // Se tivermos passado isso no checkout
+                                },
+                                {
+                                    value: amount,
+                                    currency: currency,
+                                    content_name: 'Assinatura Melhore.AI Pro',
+                                    content_type: 'product',
+                                    status: 'completed'
+                                },
+                                eventId
+                            );
+                        } catch (capiError) {
+                            console.error('Erro ao enviar evento CAPI:', capiError);
+                        }
+                    }
                 } else {
                     console.error('Erro Crítico: Não foi possível identificar o usuário para ativar o PRO. Session:', session.id);
                 }

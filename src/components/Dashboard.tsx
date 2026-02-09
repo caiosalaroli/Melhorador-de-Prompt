@@ -7,6 +7,7 @@ import { usePromptHistory } from '@/hooks/usePromptHistory';
 import { useProjects } from '@/hooks/useProjects';
 import { supabase } from '@/lib/supabase';
 import LoadingScreen from './LoadingScreen';
+import * as fpixel from '@/lib/fpixel';
 
 // Mapeamento dinâmico de opções baseado na intenção
 const AUTO_OPTION = { id: 'auto', label: 'Detectar Automaticamente (IA)', icon: '✨', desc: 'A IA decide a melhor persona, tom e objetivo.' };
@@ -163,33 +164,45 @@ const THINKING_STEPS = [
 
 
 const MASTER_PROMPTS = [
-    // SEÇÃO: TEXTO & COPYWRITING
-    { title: "Copywriting de Vendas (PAS)", icon: "💰", desc: "Problema, Agitação e Solução para conversão imediata.", content: "Atue como um Copywriter Sênior. Escreva um copy de vendas para [PRODUTO/SERVIÇO] focado no público [PÚBLICO-ALVO]. Use o framework PAS (Problema, Agitação, Solução). O objetivo final é [OBJETIVO: ex: vender, captar lead]." },
-    { title: "Artigo de Autoridade (SEO)", icon: "✍️", desc: "Conteúdo denso com cluster semântico para Google.", content: "Crie um artigo de autoridade sobre [TEMA PRINCIPAL]. O texto deve cobrir as sub-pautas: [LISTA DE PAUTAS]. Use tom de voz [TOM] e garanta que o conteúdo seja otimizado para a palavra-chave [KEYWORD]." },
-    { title: "Ghostwriter de LinkedIn", icon: "👔", desc: "Posts com ganchos fortes para autoridade e viralização.", content: "Escreva um post para o LinkedIn sobre [ASSUNTO/INSIGHT]. O post deve ter um 'Hook' (gancho) de impacto nas duas primeiras linhas e terminar com uma pergunta para gerar comentários. Persona: [SUA PROFISSÃO/CARGO]." },
+    // MARKETING & COPYWRITING
+    { category: 'Marketing', title: "Copywriting de Vendas (PAS)", icon: "💰", desc: "Problema, Agitação e Solução para conversão imediata.", content: "Atue como um Copywriter Sênior. Escreva um copy de vendas para [PRODUTO/SERVIÇO] focado no público [PÚBLICO-ALVO]. Use o framework PAS (Problema, Agitação, Solução). O objetivo final é [OBJETIVO: ex: vender, captar lead]." },
+    { category: 'Marketing', title: "Artigo de Autoridade (SEO)", icon: "✍️", desc: "Conteúdo denso com cluster semântico para Google.", content: "Crie um artigo de autoridade sobre [TEMA PRINCIPAL]. O texto deve cobrir as sub-pautas: [LISTA DE PAUTAS]. Use tom de voz [TOM] e garanta que o conteúdo seja otimizado para a palavra-chave [KEYWORD]." },
+    { category: 'Marketing', title: "Ghostwriter de LinkedIn", icon: "👔", desc: "Posts com ganchos fortes para autoridade e viralização.", content: "Escreva um post para o LinkedIn sobre [ASSUNTO/INSIGHT]. O post deve ter um 'Hook' (gancho) de impacto nas duas primeiras linhas e terminar com uma pergunta para gerar comentários. Persona: [SUA PROFISSÃO/CARGO]." },
+    { category: 'Marketing', title: "Descrições Irresistíveis (AIDA)", icon: "🛒", desc: "Transforme produtos em desejos com psicologia de vendas.", content: "Atue como um Especialista em E-commerce e Psicologia de Vendas. Escreva uma descrição de produto para [PRODUTO]. Use o framework AIDA (Atenção, Interesse, Desejo, Ação). Foque nos benefícios emocionais e quebre as principais objeções de compra." },
+    { category: 'Marketing', title: "Estrategista de Ads (High-CTR)", icon: "🚀", desc: "Variações de anúncios focadas em cliques.", content: "Atue como um Gestor de Tráfego e Especialista em Direct Response. Crie 3 variações de anúncios para [PRODUTO/SERVIÇO] focado no público [PÚBLICO]. Cada variação deve ter um gancho diferente, focando em: 1) Ganho imediato, 2) Medo de perda, 3) Curiosidade técnica." },
+    { category: 'Marketing', title: "Cold Outreach B2B", icon: "📧", desc: "E-mails de prospecção que geram reuniões.", content: "Atue como um SDR Sênior. Escreva um cold email para prospectar a empresa [EMPRESA] oferecendo a solução de [SOLUÇÃO]. O e-mail deve ser curto, personalizado e terminar com uma 'Low-friction CTA' (chamada para ação de baixo compromisso)." },
+    { category: 'Marketing', title: "Gestão de Crise (SAC)", icon: "🛡️", desc: "Transforme clientes furiosos em fãs.", content: "Atue como um Especialista em Customer Success. Escreva uma resposta para um cliente que está extremamente insatisfeito com [PROBLEMA]. Use técnicas de validação emocional, assuma a responsabilidade e proponha uma solução que supere a expectativa dele." },
 
-    // SEÇÃO: IMAGEM & DESIGN
-    { title: "Fotorealismo Hasselblad", icon: "📸", desc: "Comandos de estúdio para produtos e retratos épicos.", content: "Crie um prompt de imagem fotorrealista de [OBJETO/PESSOA]. Use especificações de lente Hasselblad 80mm, f/2.8, iluminação de estúdio 'three-point lighting' e fundo [COR/AMBIENTE]. Estilo: Fotografia comercial de alta qualidade." },
-    { title: "Concept Art Solarpunk", icon: "🌱", desc: "Arquitetura futurista onde natureza e tech coexistem.", content: "Gere um concept art no estilo Solarpunk de [LOCAL: ex: uma praça em SP]. Detalhes: muito verde, painéis solares orgânicos, arquitetura fluida de vidro e madeira. Horário: Pôr do sol com luz volumétrica." },
-    { title: "Identidade Visual Minimalista", icon: "📐", desc: "Logotipos e mockups com estética premium Apple.", content: "Desenvolva um conceito de identidade visual minimalista para uma marca de [NICHO]. Foque em tipografia sans-serif, paleta de cores [CORES] e um ícone geométrico abstrato. Apresente em um mockup de fundo cinza neutro." },
+    // DESIGN & IMAGEM
+    { category: 'Design', title: "Fotorealismo Hasselblad", icon: "📸", desc: "Comandos de estúdio para produtos e retratos épicos.", content: "Crie um prompt de imagem fotorrealista de [OBJETO/PESSOA]. Use especificações de lente Hasselblad 80mm, f/2.8, iluminação de estúdio 'three-point lighting' e fundo [COR/AMBIENTE]. Estilo: Fotografia comercial de alta qualidade." },
+    { category: 'Design', title: "Concept Art Solarpunk", icon: "🌱", desc: "Arquitetura futurista onde natureza e tech coexistem.", content: "Gere um concept art no estilo Solarpunk de [LOCAL: ex: uma praça em SP]. Detalhes: muito verde, painéis solares orgânicos, arquitetura fluida de vidro e madeira. Horário: Pôr do sol com luz volumétrica." },
+    { category: 'Design', title: "Identidade Visual Minimalista", icon: "📐", desc: "Logotipos e mockups com estética premium Apple.", content: "Desenvolva um conceito de identidade visual minimalista para uma marca de [NICHO]. Foque em tipografia sans-serif, paleta de cores [CORES] e um ícone geométrico abstrato. Apresente em um mockup de fundo cinza neutro." },
+    { category: 'Design', title: "UI Design Moderno", icon: "📱", desc: "Interfaces de apps limpos e funcionais.", content: "Crie um prompt para gerar uma interface de usuário (UI) para um aplicativo de [TIPO DE APP]. Estilo: Clean, moderno, uso de whitespace generoso, cantos arredondados e paleta de cores pastel. Tela: Dashboard principal." },
+    { category: 'Design', title: "Personagem 3D Pixar", icon: "🧸", desc: "Estilo de animação 3D fofo e expressivo.", content: "Gere um personagem estilo Disney/Pixar 3D. O personagem é um [DESCRIÇÃO: ex: coelho astronauta]. Iluminação suave, texturas detalhadas de pelo/roupa, renderização Octane, 8k." },
 
-    // SEÇÃO: VÍDEO & ROTEIRO
-    { title: "Roteiro de Retenção (Shorts/Reels)", icon: "⚡", desc: "Fórmula de 60s focada em prender a atenção.", content: "Crie um roteiro de 60 segundos para [TEMA]. Estrutura: 0-5s (O Gancho Visual), 5-20s (O Problema), 20-50s (A Solução/Dica), 50-60s (CTA com loop infinito)." },
-    { title: "Storyboard Cinematográfico", icon: "🎬", desc: "Direção de cena detalhada com enquadramentos.", content: "Descreva 5 cenas para um comercial de [PRODUTO]. Para cada cena, especifique o enquadramento (ex: Close-up, Wide), o movimento de câmera (ex: Dolly-in) e a ação do personagem." },
+    // VÍDEO & ROTEIRO
+    { category: 'Vídeo', title: "Roteiro Viral (TikTok/Reels)", icon: "⚡", desc: "Fórmula de 60s focada em retenção máxima.", content: "Crie um roteiro de 60 segundos para [TEMA]. Estrutura: 0-3s (Gancho Visual Polêmico), 3-15s (O Problema Relatável), 15-45s (A Solução/Dica de Ouro), 45-60s (CTA com loop infinito)." },
+    { category: 'Vídeo', title: "Storyboard Cinematográfico", icon: "🎬", desc: "Direção de cena detalhada com enquadramentos.", content: "Descreva 5 cenas para um comercial de [PRODUTO]. Para cada cena, especifique o enquadramento (ex: Close-up, Wide), o movimento de câmera (ex: Dolly-in) e a ação do personagem." },
+    { category: 'Vídeo', title: "Roteiro YouTube (Educação)", icon: "📺", desc: "Vídeos longos que ensinam e engajam.", content: "Crie um roteiro para um vídeo de YouTube de 10 minutos sobre [TEMA]. Estrutura: Intro (Gancho + Promessa), Desenvolvimento (3 Pilares principais), Quebra de Padrão (História ou Curiosidade), Conclusão e CTA para inscrição." },
+    { category: 'Vídeo', title: "Ideias de Transição Criativa", icon: "🎥", desc: "Transições visuais para dar dinamismo.", content: "Sugira 3 ideias de transições criativas (in-camera transitions) para um vídeo de viagem sobre [DESTINO]. As transições devem conectar a cena A (preparação) com a cena B (chegando no local) de forma fluida." },
 
-    // SEÇÃO: TECH & NEGÓCIOS
-    { title: "Review de Código (SOLID)", icon: "💻", desc: "Análise profunda em busca de bugs e refatoração.", content: "Atue como um Engenheiro de Software Staff. Analise o código abaixo em [LINGUAGEM] buscando violações dos princípios SOLID e Clean Code. Sugira a refatoração ideal: [CÓDIGO]." },
-    { title: "Arquiteto de Soluções Cloud", icon: "☁️", desc: "Desenho de infraestrutura escalável e segura.", content: "Desenhe uma arquitetura de nuvem para um SaaS de [TIPO DE APP]. A solução deve suportar [NÚMERO] de usuários e usar serviços da [AWS/GCP/AZURE]. Foque em alta disponibilidade e baixo custo." },
-    { title: "Análise SWOT Lucrativa", icon: "📊", desc: "Estratégia de negócios baseada em dados e mercado.", content: "Realize uma análise SWOT para o negócio de [NOME/TIPO DE NEGÓCIO]. Após listar Forças, Fraquezas, Oportunidades e Ameaças, crie um plano de ação de 3 passos para dominar o nicho nos próximos 6 meses." },
-    { title: "Prompt de 'Modo Entrevista'", icon: "🎙️", desc: "Faça a IA te entrevistar para extrair o melhor de você.", content: "Quero que você me entreviste para criar [O QUE VOCÊ QUER CRIAR]. Faça uma pergunta de cada vez, espere minha resposta e continue até ter informações suficientes para gerar o resultado perfeito." },
+    // NEGÓCIOS & ESTRATÉGIA
+    { category: 'Negócios', title: "Análise SWOT Lucrativa", icon: "📊", desc: "Estratégia baseada em dados e mercado.", content: "Realize uma análise SWOT para o negócio de [NOME/TIPO DE NEGÓCIO]. Após listar Forças, Fraquezas, Oportunidades e Ameaças, crie um plano de ação de 3 passos para dominar o nicho nos próximos 6 meses." },
+    { category: 'Negócios', title: "Pitch Deck de Startup", icon: "🦄", desc: "Estrutura para convencer investidores.", content: "Crie a estrutura de tópicos para um Pitch Deck de 10 slides para uma startup de [ÁREA]. O foco é levantar investimento Seed. Inclua: Problema, Solução, Tamanho de Mercado (TAM/SAM/SOM), Modelo de Negócio e Equipe." },
+    { category: 'Negócios', title: "Plano de Lançamento (6 em 7)", icon: "🚀", desc: "Estratégia para lançar infoprodutos.", content: "Crie um cronograma macro de lançamento semente para um curso sobre [TEMA]. Defina: Fase de PPL (Pré-Pré-Lançamento), CPLs (Conteúdo de Pré-Lançamento) e Abertura de Carrinho. Sugira o tema de 3 lives de aquecimento." },
+    { category: 'Negócios', title: "Simulação de Negociação", icon: "🤝", desc: "Roleplay para treinar vendas difíceis.", content: "Atue como um cliente difícil e cético que está interessado em [PRODUTO] mas acha o preço caro. Eu serei o vendedor. Comece apresentando a objeção de preço e espere minha resposta para replicar." },
 
-    // NOVOS PROMPTS ADICIONADOS
-    { title: "Descrições Irresistíveis (AIDA)", icon: "🛒", desc: "Transforme produtos comuns em desejos imediatos usando psicologia de vendas.", content: "Atue como um Especialista em E-commerce e Psicologia de Vendas. Escreva uma descrição de produto para [PRODUTO]. Use o framework AIDA (Atenção, Interesse, Desejo, Ação). Foque nos benefícios emocionais e quebre as principais objeções de compra." },
-    { title: "Estrategista de Ads (High-CTR)", icon: "🚀", desc: "Crie variações de anúncios focadas em cliques e conversão de baixo custo.", content: "Atue como um Gestor de Tráfego e Especialista em Direct Response. Crie 3 variações de anúncios para [PRODUTO/SERVIÇO] focado no público [PÚBLICO]. Cada variação deve ter um gancho diferente, focando em: 1) Ganho imediato, 2) Medo de perda, 3) Curiosidade técnica." },
-    { title: "Cold Outreach B2B", icon: "📧", desc: "E-mails de prospecção fria que geram reuniões sem parecer spam.", content: "Atue como um SDR Sênior (Sales Development Representative). Escreva um cold email para prospectar a empresa [EMPRESA] oferecendo a solução de [SOLUÇÃO]. O e-mail deve ser curto, personalizado e terminar com uma 'Low-friction CTA' (chamada para ação de baixo compromisso)." },
-    { title: "Simplificador (Método Feynman)", icon: "🧠", desc: "Aprenda qualquer coisa complexa em minutos através de analogias simples.", content: "Atue como um Professor de Elite e Mentor de Aprendizado. Explique o conceito de [CONCEITO COMPLEXO] para uma pessoa de 10 anos de idade. Use analogias do dia a dia e evite jargões técnicos. O objetivo é que eu entenda a ESSÊNCIA do assunto rapidamente." },
-    { title: "Estrategista de Conteúdo Viral", icon: "📱", desc: "Planeje um mês de conteúdo estratégico focado em autoridade e crescimento.", content: "Atue como um Consultor de Marketing de Conteúdo para [NICHO]. Crie um calendário editorial de 30 dias focado no Instagram e TikTok. O plano deve equilibrar conteúdos de: Atração (Viral), Autoridade (Educação) e Conversão (Venda)." },
-    { title: "Gestão de Crise no Atendimento", icon: "🛡️", desc: "Transforme clientes furiosos em defensores da sua marca com psicologia.", content: "Atue como um Especialista em Customer Success e Resolução de Conflitos. Escreva uma resposta para um cliente que está extremamente insatisfeito com [PROBLEMA]. Use técnicas de validação emocional, assuma a responsabilidade e proponha uma solução que supere a expectativa dele." },
+    // TECNOLOGIA & DEV
+    { category: 'Tech', title: "Review de Código (SOLID)", icon: "💻", desc: "Análise profunda em busca de bugs e refatoração.", content: "Atue como um Engenheiro de Software Staff. Analise o código abaixo em [LINGUAGEM] buscando violações dos princípios SOLID e Clean Code. Sugira a refatoração ideal: [CÓDIGO]." },
+    { category: 'Tech', title: "Arquiteto de Soluções Cloud", icon: "☁️", desc: "Desenho de infraestrutura escalável.", content: "Desenhe uma arquitetura de nuvem para um SaaS de [TIPO DE APP]. A solução deve suportar [NÚMERO] de usuários e usar serviços da [AWS/GCP/AZURE]. Foque em alta disponibilidade e baixo custo." },
+    { category: 'Tech', title: "Gerador de Regex", icon: "🧩", desc: "Expressões regulares explicadas.", content: "Crie uma Expressão Regular (Regex) para validar [PADRÃO: ex: emails corporativos, datas, CPFs]. Explique como a regex funciona passo a passo." },
+    { category: 'Tech', title: "Explicação de Bug (Post-Mortem)", icon: "🐞", desc: "Relatórios técnicos de incidentes.", content: "Escreva um relatório de Post-Mortem para um incidente onde [O QUE ACONTECEU: ex: o banco de dados caiu]. Estrutura: Resumo, Causa Raiz, Impacto, Resolução e Ações Preventivas." },
+
+    // EDUCAÇÃO & MENTORIA
+    { category: 'Educação', title: "Simplificador (Feynman)", icon: "🧠", desc: "Aprenda qualquer coisa complexa em minutos.", content: "Atue como um Professor de Elite. Explique o conceito de [CONCEITO COMPLEXO] para uma pessoa de 10 anos de idade. Use analogias do dia a dia e evite jargões técnicos. O objetivo é a compreensão intuitiva." },
+    { category: 'Educação', title: "Prompt de 'Modo Entrevista'", icon: "🎙️", desc: "A IA te entrevista para extrair o melhor de você.", content: "Quero que você me entreviste para criar [O QUE VOCÊ QUER CRIAR]. Faça uma pergunta de cada vez, espere minha resposta e continue até ter informações suficientes para gerar o resultado perfeito." },
+    { category: 'Educação', title: "Resumidor de Livros", icon: "📚", desc: "Extraia a essência de best-sellers.", content: "Faça um resumo executivo do livro [NOME DO LIVRO]. Liste os 5 principais insights práticos que podem ser aplicados imediatamente na vida profissional." },
+    { category: 'Educação', title: "Plano de Estudos (30 Dias)", icon: "📅", desc: "Roteiro para dominar uma nova habilidade.", content: "Crie um plano de estudos intensivo de 30 dias para aprender [HABILIDADE: ex: Python, Design Gráfico]. Divida em semanas com focos específicos e sugira exercícios práticos para cada dia." },
 ];
 
 const ACADEMY_LESSONS = [
@@ -366,6 +379,10 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
     const [sendingFeedback, setSendingFeedback] = useState(false);
     const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
+    // Master Prompts State
+    const [selectedCategory, setSelectedCategory] = useState("Marketing");
+    const categories = Array.from(new Set(MASTER_PROMPTS.map(p => p.category)));
+
     const [context, setContext] = useState({
         intention: 'Texto',
         persona: AUTO_OPTION.label,
@@ -464,6 +481,13 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
                 await handleManageSubscription();
                 return;
             }
+
+            // Track InitiateCheckout
+            fpixel.event('InitiateCheckout', {
+                currency: 'BRL',
+                value: 19.99,
+                content_name: 'Melhore.AI Pro Subscription'
+            });
 
             const { data: session } = await supabase.auth.getSession();
 
@@ -1014,21 +1038,50 @@ export default function Dashboard({ onLogout, initialIntent = 'login' }: Dashboa
 
                     {/* VIEW: MASTER PROMPTS */}
                     {currentView === 'master-prompts' && (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {MASTER_PROMPTS.map((mp, idx) => (
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                <div>
+                                    <h2 className="text-3xl font-black text-gray-900">Biblioteca Master 📚</h2>
+                                    <p className="text-gray-500 mt-1">Prompts de elite testados e validados.</p>
+                                </div>
+                            </div>
+
+                            {/* Category Filters */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                {categories.map(cat => (
                                     <button
-                                        key={idx}
-                                        onClick={() => handleSelectMasterPrompt(mp.content)}
-                                        className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all text-left flex flex-col gap-4 group"
+                                        key={cat}
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`px-5 py-2.5 rounded-full text-sm font-black whitespace-nowrap transition-all ${selectedCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 scale-105' : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600'}`}
                                     >
-                                        <div className="w-12 h-12 bg-blue-50 text-2xl flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">{mp.icon}</div>
-                                        <div>
-                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase text-sm tracking-wide">{mp.title}</h3>
-                                            <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">{mp.desc}</p>
-                                        </div>
+                                        {cat}
                                     </button>
                                 ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                {MASTER_PROMPTS
+                                    .filter(mp => mp.category === selectedCategory)
+                                    .map((mp, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => handleSelectMasterPrompt(mp.content)}
+                                            className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all text-left flex flex-col gap-4 group h-full animate-in zoom-in duration-300"
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div className="w-12 h-12 bg-blue-50 text-2xl flex items-center justify-center rounded-2xl group-hover:scale-110 transition-transform">{mp.icon}</div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-300 bg-gray-50 px-2 py-1 rounded-full">{mp.category}</span>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase text-sm tracking-wide">{mp.title}</h3>
+                                                <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-3">{mp.desc}</p>
+                                            </div>
+                                            <div className="mt-auto pt-4 border-t border-gray-50 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span>Usar Prompt</span>
+                                                <span>→</span>
+                                            </div>
+                                        </button>
+                                    ))}
                             </div>
                         </div>
                     )}

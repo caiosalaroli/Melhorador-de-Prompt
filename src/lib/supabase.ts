@@ -9,6 +9,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Debugging: Verificar se as variáveis estão carregando corretamente
+if (typeof window !== 'undefined') {
+    console.log('🔗 Supabase URL:', supabaseUrl);
+    console.log('🔑 Supabase Key Length:', supabaseAnonKey?.length);
+}
+
 /**
  * Cria um cliente Supabase autenticado para uso no servidor (API Routes)
  * Isso permite que o código do servidor tenha as permissões do usuário logado (RLS).
