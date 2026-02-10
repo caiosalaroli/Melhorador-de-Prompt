@@ -42,6 +42,11 @@ export async function POST(req: Request) {
             .eq('user_id', user.id)
             .single();
 
+        // 2a. Capturar Cookies de Atribuição (Meta CAPI)
+        const cookies = req.headers.get('cookie') || '';
+        const fbp = cookies.match(/_fbp=([^;]+)/)?.[1];
+        const fbc = cookies.match(/_fbc=([^;]+)/)?.[1];
+
         // 3. Criar Checkout Session
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -58,6 +63,8 @@ export async function POST(req: Request) {
             cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/?status=cancel`,
             metadata: {
                 userId: user.id,
+                fbp: fbp || null,
+                fbc: fbc || null,
             },
         });
 

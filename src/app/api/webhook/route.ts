@@ -50,17 +50,22 @@ export async function POST(req: Request) {
                     if (error) {
                         console.error('Erro ao ativar PRO:', error);
                     } else {
-                        // Meta CAPI: Send Purchase Event
+                        // --- Meta CAPI: Send Purchase Event ---
                         try {
+                            // Top-level import would be better, but keeping dynamic for now to avoid side-effects if any.
+                            // However, we'll verify it works.
                             const { sendCAPIEvent } = await import('@/lib/capi');
-                            const amount = session.amount_total ? session.amount_total / 100 : 29.90; // Default or actual
+
+                            const amount = session.amount_total ? session.amount_total / 100 : 29.90;
                             const currency = session.currency?.toUpperCase() || 'BRL';
-                            const eventId = `purchase_${session.id}`; // Deduplication ID
+                            const eventId = `purchase_${session.id}`;
 
                             // Split name if available
                             const fullName = session.customer_details?.name || '';
                             const [firstName, ...lastNameParts] = fullName.split(' ');
                             const lastName = lastNameParts.join(' ');
+
+                            console.log(`[Webhook] Enviando Purchase CAPI. Val: ${amount} ${currency}, Email: ${customerEmail}, FBP: ${session.metadata?.fbp}`);
 
                             await sendCAPIEvent(
                                 'Purchase',
@@ -68,8 +73,8 @@ export async function POST(req: Request) {
                                     email: customerEmail,
                                     firstName: firstName,
                                     lastName: lastName,
-                                    fbp: session.metadata?.fbp, // Se tivermos passado isso no checkout
-                                    fbc: session.metadata?.fbc  // Se tivermos passado isso no checkout
+                                    fbp: session.metadata?.fbp,
+                                    fbc: session.metadata?.fbc
                                 },
                                 {
                                     value: amount,
@@ -81,7 +86,7 @@ export async function POST(req: Request) {
                                 eventId
                             );
                         } catch (capiError) {
-                            console.error('Erro ao enviar evento CAPI:', capiError);
+                            console.error('❌ Erro ao enviar evento CAPI Purchase:', capiError);
                         }
                     }
                 } else {
