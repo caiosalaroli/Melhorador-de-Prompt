@@ -27,6 +27,7 @@ export function usePromptHistory() {
                 console.error('Failed to parse prompt history', e);
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const savePrompt = (entry: Omit<PromptEntry, 'id' | 'timestamp'>) => {

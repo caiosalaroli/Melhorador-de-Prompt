@@ -27,6 +27,7 @@ export function useProjects() {
                 console.error('Failed to parse projects', e);
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const saveProjects = (updated: Project[]) => {

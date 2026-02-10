@@ -33,7 +33,8 @@ export async function sendCAPIEvent(
     eventName: string,
     userData: UserData,
     customData: CustomData = {},
-    eventId?: string
+    eventId?: string,
+    testEventCode?: string
 ) {
     if (!PIXEL_ID || !ACCESS_TOKEN) {
         console.warn('⚠️ Meta CAPI: Missing Credentials');
@@ -42,27 +43,31 @@ export async function sendCAPIEvent(
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
 
-    const payload = {
-        data: [
-            {
-                event_name: eventName,
-                event_time: currentTimestamp,
-                event_id: eventId, // Deduplicação
-                action_source: 'website',
-                user_data: {
-                    em: userData.email ? [hashData(userData.email)] : undefined,
-                    ph: userData.phone ? [hashData(userData.phone)] : undefined,
-                    fn: userData.firstName ? [hashData(userData.firstName)] : undefined,
-                    ln: userData.lastName ? [hashData(userData.lastName)] : undefined,
-                    client_ip_address: userData.clientIp,
-                    client_user_agent: userData.userAgent,
-                    fbp: userData.fbp,
-                    fbc: userData.fbc,
-                },
-                custom_data: customData,
-            },
-        ],
+    const eventObject: any = {
+        event_name: eventName,
+        event_time: currentTimestamp,
+        event_id: eventId, // Deduplicação
+        action_source: 'website',
+        user_data: {
+            em: userData.email ? [hashData(userData.email)] : undefined,
+            ph: userData.phone ? [hashData(userData.phone)] : undefined,
+            fn: userData.firstName ? [hashData(userData.firstName)] : undefined,
+            ln: userData.lastName ? [hashData(userData.lastName)] : undefined,
+            client_ip_address: userData.clientIp,
+            client_user_agent: userData.userAgent,
+            fbp: userData.fbp,
+            fbc: userData.fbc,
+        },
+        custom_data: customData,
     };
+
+    const payload: any = {
+        data: [eventObject],
+    };
+
+    if (testEventCode) {
+        payload.test_event_code = testEventCode;
+    }
 
     try {
         const response = await fetch(
@@ -79,10 +84,14 @@ export async function sendCAPIEvent(
         if (!response.ok) {
             const errorData = await response.json();
             console.error('❌ Meta CAPI Error:', JSON.stringify(errorData, null, 2));
+            return { success: false, error: errorData };
         } else {
+            const successData = await response.json();
             console.log(`✅ Meta CAPI Sent: ${eventName}`);
+            return { success: true, data: successData };
         }
     } catch (error) {
         console.error('❌ Meta CAPI Network Error:', error);
+        return { success: false, error: error };
     }
 }
