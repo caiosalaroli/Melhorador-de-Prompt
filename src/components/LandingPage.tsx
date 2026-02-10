@@ -638,7 +638,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
                                 <div className="flex flex-col items-center mb-8">
                                     <span className="text-gray-400 line-through font-bold text-lg mb-1">R$ 29,90</span>
                                     <div className="text-5xl md:text-6xl font-black text-green-600 tracking-tight flex items-baseline">
-                                        R$ 19,90<span className="text-sm text-gray-400 font-bold ml-1">/mês</span>
+                                        R$ 19,99<span className="text-sm text-gray-400 font-bold ml-1">/mês</span>
                                     </div>
                                     <div className="mt-3 px-4 py-1.5 bg-green-50 text-green-700 text-[10px] font-black rounded-full border border-green-100 flex items-center gap-1.5">💰 VOCÊ ECONOMIZA R$ 10,00</div>
                                 </div>
