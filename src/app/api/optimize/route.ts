@@ -281,24 +281,6 @@ Maximize a densidade técnica e a utilidade prática deste comando.`;
             console.error('Falha crítica no log de uso:', usageErr);
         }
 
-        // --- META CAPI INTEGRATION ---
-        const userDataCapi = {
-            email: user.email,
-            clientIp: req.headers.get('x-forwarded-for') || '127.0.0.1',
-            userAgent: req.headers.get('user-agent') || 'Unknown',
-        };
-
-        const customDataCapi = {
-            content_name: 'Prompt Optimization',
-            content_category: platform?.toUpperCase() || 'GENERAL',
-            status: 'success'
-        };
-
-        // Fire and forget
-        sendCAPIEvent('CompleteRegistration', userDataCapi, customDataCapi).catch(e =>
-            console.error('CAPI Background Error:', e)
-        );
-
         return NextResponse.json({
             improved,
             reasoning: reasoningResult,

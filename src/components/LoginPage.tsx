@@ -36,6 +36,22 @@ export default function LoginPage({ onLogin, initialView = 'login' }: LoginPageP
                     password,
                 });
                 if (signUpError) throw signUpError;
+
+                // --- META CAPI: Track Registration ---
+                try {
+                    const cookies = document.cookie || '';
+                    const fbp = cookies.match(/_fbp=([^;]+)/)?.[1];
+                    const fbc = cookies.match(/_fbc=([^;]+)/)?.[1];
+
+                    fetch('/api/track-registration', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, fbp, fbc })
+                    }).catch(e => console.error('CAPI client-side error:', e));
+                } catch (capiErr) {
+                    console.error('Failed to trigger registration tracking:', capiErr);
+                }
+
                 setSuccess('Sua conta foi criada com sucesso! Redirecionando para o painel...');
                 setTimeout(() => onLogin(), 1500);
             } else if (view === 'login') {
